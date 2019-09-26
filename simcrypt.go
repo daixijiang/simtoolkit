@@ -58,28 +58,28 @@ import (
 	"unsafe"
 )
 
-const ICCID_STR_LEN		= 20
-const IMSI_STR_LEN		= 15
-const KI_STR_LEN		= 32
-const OPC_STR_LEN		= 32
-const IMSI_M_STR_LEN	= 15
-const UIMID_STR_LEN		= 8
-const HRDUPP_STR_LEN	= 25
-const IMEI_STR_LEN		= 15
-const CHIPID_STR_LEN	= 32
-const ENC_DATA_192		= 192
-const ENC_DATA_64		= 64
+const ICCID_STR_LEN = 20
+const IMSI_STR_LEN = 15
+const KI_STR_LEN = 32
+const OPC_STR_LEN = 32
+const IMSI_M_STR_LEN = 15
+const UIMID_STR_LEN = 8
+const HRDUPP_STR_LEN = 25
+const IMEI_STR_LEN = 15
+const CHIPID_STR_LEN = 32
+const ENC_DATA_192 = 192
+const ENC_DATA_64 = 64
 
-const OPER_CN_MOBILE	= 0
-const OPER_CN_UNICOM	= 1
-const OPER_CN_TELECOM	= 2
-const OPER_MAX			= 3
+const OPER_CN_MOBILE = 0
+const OPER_CN_UNICOM = 1
+const OPER_CN_TELECOM = 2
+const OPER_MAX = 3
 
 type SIM_DATA struct {
 	Iccid string
-	Imsi string
-	Ki string
-	Opc string
+	Imsi  string
+	Ki    string
+	Opc   string
 }
 
 type CDMA_DATA struct {
@@ -89,15 +89,15 @@ type CDMA_DATA struct {
 }
 
 type SRC_SIM_DATA struct {
-	Imei string
-	ChipID string
-	VsimData[OPER_MAX] SIM_DATA
+	Imei     string
+	ChipID   string
+	VsimData [OPER_MAX]SIM_DATA
 	CdmaData CDMA_DATA
 }
 
 type ENC_SIM_DATA struct {
 	EncData192 string
-	EncData64 string
+	EncData64  string
 }
 
 func Min(x, y int) int {
@@ -108,11 +108,11 @@ func Min(x, y int) int {
 }
 
 func IntPtr(n int) uintptr {
-    return uintptr(n)
+	return uintptr(n)
 }
 
 func StrPtr(s string) uintptr {
-    return uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(s)))
+	return uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(s)))
 }
 
 func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, encsim *ENC_SIM_DATA) {
@@ -164,37 +164,37 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, encsim *ENC_SIM_DATA) {
 	}
 
 	// C Call DLL
-    ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
-    if err != nil {
+	ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
+	if err != nil {
 		fmt.Printf("lib.dll运算结果为: %d\n", ret)
 		(*encsim).EncData192 = C.GoString(&encSim.encData192[0])
 		(*encsim).EncData64 = C.GoString(&encSim.encData64[0])
 
 		/*
-		fmt.Printf("imei: %s\n", C.GoString(&srcSim.imei[0]))
-		fmt.Printf("chipID: %s\n", C.GoString(&srcSim.chipID[0]))
-		fmt.Printf("imsi_m: %s\n", C.GoString(&srcSim.cdmaData.imsi_m[0]))
-		fmt.Printf("uim_id: %s\n", C.GoString(&srcSim.cdmaData.uim_id[0]))
-		fmt.Printf("hrdupp: %s\n", C.GoString(&srcSim.cdmaData.hrdupp[0]))
-		fmt.Printf("iccid: %s\n", C.GoString(&srcSim.vsimData[0].iccid[0]))
-		fmt.Printf("imsi: %s\n", C.GoString(&srcSim.vsimData[0].imsi[0]))
-		fmt.Printf("ki: %s\n", C.GoString(&srcSim.vsimData[0].ki[0]))
-		fmt.Printf("opc: %s\n", C.GoString(&srcSim.vsimData[0].opc[0]))
+			fmt.Printf("imei: %s\n", C.GoString(&srcSim.imei[0]))
+			fmt.Printf("chipID: %s\n", C.GoString(&srcSim.chipID[0]))
+			fmt.Printf("imsi_m: %s\n", C.GoString(&srcSim.cdmaData.imsi_m[0]))
+			fmt.Printf("uim_id: %s\n", C.GoString(&srcSim.cdmaData.uim_id[0]))
+			fmt.Printf("hrdupp: %s\n", C.GoString(&srcSim.cdmaData.hrdupp[0]))
+			fmt.Printf("iccid: %s\n", C.GoString(&srcSim.vsimData[0].iccid[0]))
+			fmt.Printf("imsi: %s\n", C.GoString(&srcSim.vsimData[0].imsi[0]))
+			fmt.Printf("ki: %s\n", C.GoString(&srcSim.vsimData[0].ki[0]))
+			fmt.Printf("opc: %s\n", C.GoString(&srcSim.vsimData[0].opc[0]))
 
-		fmt.Printf("\nEncData192:\n")
-		for index := 0; index < ENC_DATA_192; index++ {
-			ens := []byte((*encsim).EncData192)
-			fmt.Printf("%02X ", ens[index])
-		}
-		fmt.Printf("\n")
-		fmt.Printf("\nEncData64:\n")
-		for index := 0; index < ENC_DATA_64; index++ {
-			ens := []byte((*encsim).EncData64)
-			fmt.Printf("%02X ", ens[index])
-		}
-		fmt.Printf("\n")
+			fmt.Printf("\nEncData192:\n")
+			for index := 0; index < ENC_DATA_192; index++ {
+				ens := []byte((*encsim).EncData192)
+				fmt.Printf("%02X ", ens[index])
+			}
+			fmt.Printf("\n")
+			fmt.Printf("\nEncData64:\n")
+			for index := 0; index < ENC_DATA_64; index++ {
+				ens := []byte((*encsim).EncData64)
+				fmt.Printf("%02X ", ens[index])
+			}
+			fmt.Printf("\n")
 		*/
-    }
+	}
 }
 
 func test_vsim_encrypt() {
@@ -211,21 +211,21 @@ func test_vsim_encrypt() {
 	uimidStr := []byte{0x38, 0x30, 0x32, 0x41, 0x44, 0x41, 0x37, 0x44}
 	hrduppStr := []byte{0x34, 0x36, 0x30, 0x30, 0x33, 0x38, 0x37, 0x34, 0x31, 0x35, 0x38, 0x37, 0x32, 0x37, 0x38, 0x40, 0x6D, 0x79, 0x63, 0x64, 0x6D, 0x61, 0x2E, 0x63, 0x6E}
 
-	srcsim := SRC_SIM_DATA {
-		Imei: string(imeiStr[:]),
+	srcsim := SRC_SIM_DATA{
+		Imei:   string(imeiStr[:]),
 		ChipID: string(chipidStr[:]),
-		CdmaData: CDMA_DATA {
+		CdmaData: CDMA_DATA{
 			Imsi_m: string(imsimStr[:]),
 			Uim_id: string(uimidStr[:]),
 			Hrdupp: string(hrduppStr[:]),
 		},
 	}
 
-	srcsim.VsimData[OPER_CN_MOBILE] = SIM_DATA {
+	srcsim.VsimData[OPER_CN_MOBILE] = SIM_DATA{
 		Iccid: string(iccidStr[:]),
-		Imsi: string(imsiStr[:]),
-		Ki: string(kiStr[:]),
-		Opc: string(opcStr[:]),
+		Imsi:  string(imsiStr[:]),
+		Ki:    string(kiStr[:]),
+		Opc:   string(opcStr[:]),
 	}
 
 	Lib_vsim_encrypt(srcsim, &encsim)

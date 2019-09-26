@@ -6,9 +6,9 @@ package main
 
 import (
 	"fmt"
-	"vlog"
-	"time"
 	"strings"
+	"time"
+	"vlog"
 
 	"github.com/tarm/serial"
 )
@@ -18,6 +18,7 @@ const APP_AT_OK string = "AT"
 
 /* Port struct */
 const SERAIL_PORT_MAX = 8
+
 var close_port int = 0xFF
 var at_reply [SERAIL_PORT_MAX]string
 
@@ -29,28 +30,29 @@ const (
 
 type serial_port_info struct {
 	port_status int
-	portname string
-	strInfo string
-	comPort *serial.Port
-	dev_data devReqData
-	sim_data devResData
+	portname    string
+	strInfo     string
+	comPort     *serial.Port
+	dev_data    devReqData
+	sim_data    devResData
 }
 
-var serial_port[SERAIL_PORT_MAX] serial_port_info
+var serial_port [SERAIL_PORT_MAX]serial_port_info
+
 /* Port end */
 
 // serail function
 func portIsOK(portid int) int {
-	if (portid == SERAIL_PORT_MAX) {
+	if portid == SERAIL_PORT_MAX {
 		for index := 0; index < SERAIL_PORT_MAX; index++ {
-			if (serial_port[index].port_status == PORT_STATUS_CLOSE) {
+			if serial_port[index].port_status == PORT_STATUS_CLOSE {
 				close_port = index
 				return 0
 			}
-        	}
+		}
 		return 1
 	} else {
-		if (serial_port[portid].port_status == PORT_STATUS_CLOSE) {
+		if serial_port[portid].port_status == PORT_STATUS_CLOSE {
 			close_port = portid
 			return 0
 		} else {
@@ -77,7 +79,7 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string) string {
 		return at_reply[portid]
 	}
 
-	time.Sleep(time.Duration(100) *time.Millisecond)
+	time.Sleep(time.Duration(100) * time.Millisecond)
 
 	at_reply[portid] = ""
 	for i := 0; i < 10; i++ {
@@ -85,7 +87,7 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string) string {
 		if n > 0 {
 			at_reply[portid] += fmt.Sprintf("%s", string(buf[:n]))
 		}
- 
+
 		if strings.LastIndex(at_reply[portid], "\r\nOK\r\n") > 0 {
 			break
 		}
@@ -99,7 +101,7 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string) string {
 func serialOpen(portid int, strCom string) int {
 	vlog.Info("Port[%d] => open port %s", portid, strCom)
 
-	if (serial_port[portid].port_status != PORT_STATUS_CLOSE) {
+	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
 		return 0
 	}
 	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: 100}
@@ -129,32 +131,40 @@ func serialATsendCmd(portid int, strCom string, strCmd string) {
 
 func serialClose(portid int, strCom string) {
 	vlog.Info("Port[%d] => close port %s", portid, strCom)
-	if (serial_port[portid].port_status != PORT_STATUS_CLOSE) {
+	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
 		serial_port[portid].comPort.Close()
 		serial_port[portid].port_status = PORT_STATUS_CLOSE
 	}
 	serial_port[portid].strInfo = fmt.Sprintf("%s", "*")
 }
 
+func serialProduce(portid int) {
+	getDevInfo(portid)
+	getServInfo(portid)
+	cryptoVSIM(portid)
+	writeVsimData(portid)
+	serial_port[portid].port_status = PORT_STATUS_OPEN
+}
+
 func getDevInfo(portid int) {
 	vlog.Info("Port[%d] p(1.0)=> get device info ...", portid)
-	time.Sleep(time.Duration(2)*time.Second)
+	time.Sleep(time.Duration(2) * time.Second)
 
 	//serial_port[portid].dev_data.Imei = "868575021892064"
 	modEC20[Module_CMD2_IMEI].CmdFunc(
-		Module_CMD2_IMEI, portid, 
-		serial_port[portid].comPort, 
+		Module_CMD2_IMEI, portid,
+		serial_port[portid].comPort,
 		&serial_port[portid].dev_data.Imei)
 
 	//serial_port[portid].dev_data.Chipid = "20171026050559A399032A3416886391"
 	modEC20[Module_CMD2_CHIPID].CmdFunc(
-		Module_CMD2_CHIPID, portid, 
-		serial_port[portid].comPort, 
+		Module_CMD2_CHIPID, portid,
+		serial_port[portid].comPort,
 		&serial_port[portid].dev_data.Chipid)
 
 	var version string
 	modEC20[Module_CMD2_VER].CmdFunc(
-		Module_CMD2_VER, portid, serial_port[portid].comPort,  &version)
+		Module_CMD2_VER, portid, serial_port[portid].comPort, &version)
 
 	//TODO
 	serial_port[portid].dev_data.Token = getToken(serial_port[portid].dev_data.Imei)
@@ -162,22 +172,21 @@ func getDevInfo(portid int) {
 
 func getServInfo(portid int) {
 	vlog.Info("Port[%d] p(2.0)=> get server info ...", portid)
-	time.Sleep(time.Duration(2)*time.Second)
-	
+	time.Sleep(time.Duration(2) * time.Second)
+
 	reqSimServer(serial_port[portid].dev_data, serial_port[portid].sim_data)
 	serial_port[portid].strInfo = fmt.Sprintf("%s", "S")
 }
 
 func cryptoVSIM(portid int) {
 	vlog.Info("Port[%d] p(3.0)=> crypto vsim data ...", portid)
-	time.Sleep(time.Duration(2)*time.Second)
+	time.Sleep(time.Duration(2) * time.Second)
 }
 
-func doProduce(portid int) {
+func writeVsimData(portid int) {
 	vlog.Info("Port[%d] p(4.0)=> do producing on ...", portid)
-	time.Sleep(time.Duration(2)*time.Second)
+	time.Sleep(time.Duration(2) * time.Second)
 }
 
-func showSerialList() {
+func serialList() {
 }
-

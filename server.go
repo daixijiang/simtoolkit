@@ -7,31 +7,31 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"vlog"
-	"bytes"
 	"io/ioutil"
 	"net/http"
+	"vlog"
 )
 
 type devReqData struct {
-	Imei	string  `json:"imei"`
-	Chipid  string  `json:"chipid"`
-	Token	string  `json:"token"`
+	Imei   string `json:"imei"`
+	Chipid string `json:"chipid"`
+	Token  string `json:"token"`
 }
 
 type devResData struct {
-	Status	int     `json:"status"`
-	Imei	string  `json:"imei"`
-	Iccid	string  `json:"iccid"`
-	De	string  `json:"de"`
+	Status int    `json:"status"`
+	Imei   string `json:"imei"`
+	Iccid  string `json:"iccid"`
+	De     string `json:"de"`
 }
 
 func check(err error, code int) int {
 	if err != nil {
-        	vlog.Error("Json parse error %d", code)
-        	return code
+		vlog.Error("Json parse error %d", code)
+		return code
 	}
 
 	return 0
@@ -45,7 +45,9 @@ func reqSimServer(req devReqData, res devResData) {
 	var data []byte
 
 	serverData, err := json.Marshal(req)
-	if (check(err, 1) != 0) { return }
+	if check(err, 1) != 0 {
+		return
+	}
 
 	vlog.Info("%s", string(serverData))
 	req_new := bytes.NewBuffer(serverData)
@@ -59,22 +61,25 @@ func reqSimServer(req devReqData, res devResData) {
 	request, _ := http.NewRequest("POST", serverUrl, req_new)
 	request.Header.Set("Content-type", "application/json")
 
-
 	resp, err = client.Do(request)
-	if (check(err, 2) != 0) { return }
+	if check(err, 2) != 0 {
+		return
+	}
 
 	if data, err = ioutil.ReadAll(resp.Body); err == nil {
 		vlog.Info("%s", data)
 	}
 
 	err = json.Unmarshal(data, &message)
-	if (check(err, 3) != 0) { return }
+	if check(err, 3) != 0 {
+		return
+	}
 
 	vlog.Info("%+v", message)
 	res.Status = message.Status
-	res.Imei   = message.Imei
-	res.Iccid  = message.Iccid
-	res.De     = message.De
+	res.Imei = message.Imei
+	res.Iccid = message.Iccid
+	res.De = message.De
 }
 
 /*
