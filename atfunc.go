@@ -51,8 +51,8 @@ type ModuleTable struct {
 	CmdFunc cmdHandler
 }
 
-var modEC20 [100]ModuleTable
-var modSIM800C [100]ModuleTable
+var modEC20 [Module_TAB_AT_CMD_MAX]ModuleTable
+var modSIM800C [Module_TAB_AT_CMD_MAX]ModuleTable
 
 func module_init() {
 	module_ec20_init()
@@ -93,12 +93,12 @@ func ec20_get_imei(cmdid int, portid int, s *serial.Port, reply *string) int {
 	length := len(rs)
 	sublen := len(modEC20[cmdid].CmdStr)
 
-	vlog.Info("%d %q", length, []byte(resp))
+	vlog.Info("    AT cmd(%d): %q", length, []byte(resp))
 	pos1 := strings.Index(resp, modEC20[cmdid].CmdStr+"\r\r\n")
 	pos2 := strings.Index(resp, "\r\n\r\nOK")
 	if pos1 >= 0 && pos2 >= 0 {
 		preresp := string(rs[sublen+len("\r\r\n") : pos2])
-		vlog.Info("%d %s", len(preresp), preresp)
+		vlog.Info("    AT get(%d): %s", len(preresp), preresp)
 		*reply = preresp
 		return len(*reply)
 	}
@@ -117,12 +117,12 @@ func ec20_get_ver(cmdid int, portid int, s *serial.Port, reply *string) int {
 	length := len(rs)
 	sublen := len(modEC20[cmdid].CmdStr)
 
-	vlog.Info("%d %q", length, []byte(resp))
+	vlog.Info("    AT cmd(%d): %q", length, []byte(resp))
 	pos1 := strings.Index(resp, modEC20[cmdid].CmdStr+"\r\r\n")
 	pos2 := strings.Index(resp, "\r\n\r\nOK")
 	if pos1 >= 0 && pos2 >= 0 {
 		preresp := string(rs[(sublen + len("\r\r\n") + len("+CSIM: 36,\"")) : pos2-1])
-		vlog.Info("%d %s", len(preresp), preresp)
+		vlog.Info("    AT get(%d): %s", len(preresp), preresp)
 		*reply = preresp
 		return len(preresp)
 	}
@@ -140,12 +140,12 @@ func ec20_get_chipid(cmdid int, portid int, s *serial.Port, reply *string) int {
 	length := len(rs)
 	sublen := len(modEC20[cmdid].CmdStr)
 
-	vlog.Info("%d %q", length, []byte(resp))
+	vlog.Info("    AT cmd(%d): %q", length, []byte(resp))
 	pos1 := strings.Index(resp, modEC20[cmdid].CmdStr+"\r\r\n")
 	pos2 := strings.Index(resp, "\r\n\r\nOK")
 	if pos1 >= 0 && pos2 >= 0 {
 		preresp := string(rs[(sublen + len("\r\r\n") + len("+CSIM: 36,\"")) : pos2-1])
-		vlog.Info("%d %s", len(preresp), preresp)
+		vlog.Info("    AT get(%d): %s", len(preresp), preresp)
 		*reply = preresp
 		return len(preresp)
 	}

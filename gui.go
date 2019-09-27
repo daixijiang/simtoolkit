@@ -25,6 +25,24 @@ type portGroup struct {
 	TestCmdEditor [SERAIL_PORT_MAX]nucular.TextEditor
 }
 
+const (
+	// prepare
+	Btn_CMD_Produce = 0
+	Btn_CMD_CheckDo = 1
+	Btn_CMD_Close   = 2
+	Btn_CMD_MAX     = 3
+)
+
+type btnHandler func(portid int)
+
+type BtnDoTable struct {
+	BtnID   int
+	BtnStr  string
+	BtnFunc btnHandler
+}
+
+var myBtnTab [Btn_CMD_MAX]BtnDoTable
+
 var wg sync.WaitGroup
 
 func newportGroup() (pg *portGroup) {
@@ -41,8 +59,11 @@ func newportGroup() (pg *portGroup) {
 		pg.TestCmdEditor[port_id].Flags = nucular.EditSelectable
 		pg.TestCmdEditor[port_id].Buffer = []rune("AT")
 		pg.TestCmdEditor[port_id].Maxlen = 64
-
 	}
+
+	myBtnTab[Btn_CMD_Produce] = BtnDoTable{Btn_CMD_Produce, "produce", serialProduce}
+	myBtnTab[Btn_CMD_CheckDo] = BtnDoTable{Btn_CMD_CheckDo, "checkdo", serialCheckDo}
+	myBtnTab[Btn_CMD_Close] = BtnDoTable{Btn_CMD_Close, "close", serialClose}
 
 	return pg
 }
@@ -57,16 +78,24 @@ func (pg *portGroup) showUI(w *nucular.Window) {
 	}
 
 	w.Row(5).Dynamic(1)
-	w.Row(30).Dynamic(2)
+	w.Row(30).Dynamic(3)
 	if w.Button(label.T("LoadToken"), false) {
-		pg.loadToken(w)
+		pg.btnLoadToken(w)
 	}
 
 	if w.Button(label.T("ProduceAll"), false) {
-		pg.btnProduceAll(w)
+		pg.btnHandleAll(w, Btn_CMD_Produce)
 	}
 
-	w.Row(30).Dynamic(1)
+	if w.Button(label.T("CheckDoAll"), false) {
+		pg.btnHandleAll(w, Btn_CMD_CheckDo)
+	}
+
+	w.Row(30).Dynamic(2)
+	if w.Button(label.T("CloseAll"), false) {
+		pg.btnHandleAll(w, Btn_CMD_Close)
+	}
+
 	if w.Button(label.T("Quit"), false) {
 		os.Exit(1)
 	}
@@ -144,7 +173,7 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 		}
 
 		if sw.Button(label.T("Close"), false) {
-			serialClose(portid, strCom)
+			serialClose(portid)
 		}
 
 		sw.GroupEnd()
@@ -183,7 +212,7 @@ func (pg *portGroup) btnProduce(w *nucular.Window, portid int, strCom string) {
 		if serial_port[portid].port_status != PORT_STATUS_PRODUCE {
 			serial_port[portid].port_status = PORT_STATUS_PRODUCE
 			wg.Add(1)
-			go pg.taskProduce(portid)
+			go pg.taskBtnHandle(Btn_CMD_Produce, portid)
 			wg.Wait()
 		}
 		serial_port[portid].port_status = PORT_STATUS_OPEN
@@ -191,7 +220,7 @@ func (pg *portGroup) btnProduce(w *nucular.Window, portid int, strCom string) {
 	}
 }
 
-func (pg *portGroup) btnProduceAll(w *nucular.Window) {
+func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int) {
 	cntCheck := 0
 	portlist := ""
 
@@ -207,28 +236,28 @@ func (pg *portGroup) btnProduceAll(w *nucular.Window) {
 	vlog.Info("Check port(%d): %s", cntCheck, portlist)
 
 	if cntCheck == 0 {
-		pg.openMessage(w, "Please select and open the ports!")
+		pg.openMessage(w, "Please select(open) the ports!")
 	} else if portlist != "" {
-		msg := fmt.Sprintf("Please open the ports: [%s]!", portlist)
+		msg := fmt.Sprintf("Please select(open) the ports: [%s]!", portlist)
 		pg.openMessage(w, msg)
 	} else {
-		vlog.Info("start produce all")
+		vlog.Info("start %s all", myBtnTab[oper].BtnStr)
 		wg.Add(cntCheck)
 		for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
 			if pg.Checkbox[port_id] && (portIsOK(port_id) == 1) {
-				go pg.taskProduce(port_id)
+				go pg.taskBtnHandle(oper, port_id)
 			}
 		}
 		wg.Wait()
 	}
 }
 
-func (pg *portGroup) taskProduce(portid int) {
-	serialProduce(portid)
+func (pg *portGroup) taskBtnHandle(oper int, portid int) {
+	myBtnTab[oper].BtnFunc(portid)
 	wg.Done()
 }
 
-func (pg *portGroup) loadToken(w *nucular.Window) {
-	//loadTokenCfg("./token.cfg")
-	test_vsim_encrypt()
+func (pg *portGroup) btnLoadToken(w *nucular.Window) {
+	loadTokenCfg("./token.cfg")
+	//test_vsim_encrypt()
 }

@@ -107,7 +107,7 @@ func addToken(token string, index int) {
 func getToken(imei string) (token string) {
 	// general token
 	if myTokenStat.total == 1 {
-		vlog.Info("get token[%s] for imei[%s]",
+		vlog.Info("    get token[%s] for imei[%s]",
 			myTokenStat.sToken[0].Token, imei)
 		return myTokenStat.sToken[0].Token
 	}
@@ -116,11 +116,11 @@ func getToken(imei string) (token string) {
 	for index := myTokenStat.current; index < myTokenStat.total; index++ {
 		if myTokenStat.sToken[index].Token != "" {
 			if myTokenStat.sToken[index].Imei == imei {
-				vlog.Info("get token[%s] for imei[%s]",
+				vlog.Info("    get token[%s] for imei[%s]",
 					myTokenStat.sToken[index].Token, imei)
 				return myTokenStat.sToken[index].Token
 			} else if myTokenStat.sToken[index].Useflag == 0 {
-				vlog.Info("get token[%s] for imei[%s]",
+				vlog.Info("    get token[%s] for imei[%s]",
 					myTokenStat.sToken[index].Token, imei)
 				myTokenStat.current = index + 1
 				return myTokenStat.sToken[index].Token
@@ -132,11 +132,11 @@ func getToken(imei string) (token string) {
 	for index := 0; index < myTokenStat.total; index++ {
 		if myTokenStat.sToken[index].Token != "" {
 			if myTokenStat.sToken[index].Imei == imei {
-				vlog.Info("get token[%s] for imei[%s]",
+				vlog.Info("    get token[%s] for imei[%s]",
 					myTokenStat.sToken[index].Token, imei)
 				return myTokenStat.sToken[index].Token
 			} else if myTokenStat.sToken[index].Useflag == 0 {
-				vlog.Info("get token[%s] for imei[%s]",
+				vlog.Info("    get token[%s] for imei[%s]",
 					myTokenStat.sToken[index].Token, imei)
 				myTokenStat.current = index + 1
 				return myTokenStat.sToken[index].Token
@@ -144,6 +144,6 @@ func getToken(imei string) (token string) {
 		}
 	}
 
-	vlog.Info("get no token for imei[%s]", imei)
+	vlog.Info("    get no token for imei[%s]", imei)
 	return ""
 }

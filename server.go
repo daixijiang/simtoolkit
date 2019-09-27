@@ -15,17 +15,56 @@ import (
 	"vlog"
 )
 
+const SERVER_PLAIN_v0 = 0
+const SERVER_Cipher_v1 = 1
+const SERVER_Cipher_v2 = 2
+const SERVER_Cipher_v3 = 3
+const SERVER_Cipher_v4 = 4
+const SERVER_MAX = 5
+
+// plaintext
+const serverPlainUrl string = "https://rdp.showmac.cn/api/v1/profile/clear/get"
+
+// ciphertext
+const serverCipherUrlV1 string = "https://rdp.showmac.cn/api/v1/profile/get"
+
+var serverUrl = [SERVER_MAX]string{serverPlainUrl, serverCipherUrlV1}
+
 type devReqData struct {
+	Ver    string `json:"version"`
 	Imei   string `json:"imei"`
 	Chipid string `json:"chipid"`
 	Token  string `json:"token"`
 }
 
-type devResData struct {
+type devReqCipherData struct {
+	Imei   string `json:"imei"`
+	Chipid string `json:"chipid"`
+	Token  string `json:"token"`
+}
+
+type devResCipherData struct {
 	Status int    `json:"status"`
 	Imei   string `json:"imei"`
 	Iccid  string `json:"iccid"`
 	De     string `json:"de"`
+}
+
+type devReqPlainData struct {
+	Imei  string `json:"imei"`
+	Token string `json:"token"`
+}
+
+type devResPlainData struct {
+	Status  int    `json:"status"`
+	Imei    string `json:"imei"`
+	Iccid   string `json:"iccid"`
+	Ki      string `json:"ki"`
+	Opc     string `json:"opc"`
+	ImsiLTE string `json:"imsiLTE"`
+	ImsiM   string `json:"imsiM"`
+	Uimid   string `json:"uimID"`
+	Hrpdupp string `json:"hrpdupp"`
 }
 
 func check(err error, code int) int {
@@ -37,11 +76,43 @@ func check(err error, code int) int {
 	return 0
 }
 
-const serverUrl string = "https://rdp.showmac.cn/api/v1/profile/get"
-
-func reqSimServer(req devReqData, res devResData) {
+func reqSimServer(version int, req interface{}, resp_data *[]byte) {
 	var resp *http.Response
-	var message devResData
+
+	serverData, err := json.Marshal(req)
+	if check(err, 1) != 0 {
+		return
+	}
+
+	vlog.Info("    request: %s", string(serverData))
+	req_new := bytes.NewBuffer(serverData)
+
+	tr := &http.Transport{
+		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
+		DisableCompression: true,
+	}
+
+	client := &http.Client{Transport: tr}
+	request, _ := http.NewRequest("POST", serverUrl[version], req_new)
+	request.Header.Set("Content-type", "application/json")
+
+	resp, err = client.Do(request)
+	if check(err, 2) != 0 {
+		return
+	}
+
+	if *resp_data, err = ioutil.ReadAll(resp.Body); err == nil {
+		vlog.Info("    response: %s", *resp_data)
+	}
+
+	if check(err, 3) != 0 {
+		return
+	}
+}
+
+func reqSimPlainServer(req devReqPlainData, res devResPlainData) {
+	var resp *http.Response
+	var message devResPlainData
 	var data []byte
 
 	serverData, err := json.Marshal(req)
@@ -58,7 +129,7 @@ func reqSimServer(req devReqData, res devResData) {
 	}
 
 	client := &http.Client{Transport: tr}
-	request, _ := http.NewRequest("POST", serverUrl, req_new)
+	request, _ := http.NewRequest("POST", serverPlainUrl, req_new)
 	request.Header.Set("Content-type", "application/json")
 
 	resp, err = client.Do(request)
@@ -79,18 +150,21 @@ func reqSimServer(req devReqData, res devResData) {
 	res.Status = message.Status
 	res.Imei = message.Imei
 	res.Iccid = message.Iccid
-	res.De = message.De
 }
 
-/*
-func main() {
-	var dev_data devReqData
-	var sim_data devResData
+func test_server_main() {
+	var dev_data devReqPlainData
+	var sim_data devResPlainData
+	var res []byte
 
-	dev_data.Imei = "868575021892064"
-	dev_data.Chipid = "20171026050559A399032A3416886391"
-	dev_data.Token = "KD1MQ-BWJGR-8ZB29-9D59J"
+	dev_data.Imei = "863412049788253"
+	dev_data.Token = "YR0NI-259CE-R3JI5-01DJN-ENY2Z"
 
-	reqSimServer(dev_data, sim_data)
+	reqSimServer(SERVER_PLAIN_v0, dev_data, &res)
+	err := json.Unmarshal(res, &sim_data)
+	if check(err, 3) != 0 {
+		return
+	}
+
+	vlog.Info("%+v", sim_data)
 }
-*/

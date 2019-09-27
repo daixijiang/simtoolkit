@@ -5,6 +5,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -34,7 +35,9 @@ type serial_port_info struct {
 	strInfo     string
 	comPort     *serial.Port
 	dev_data    devReqData
-	sim_data    devResData
+	sim_pv1     devResPlainData
+	sim_cv1     devResCipherData
+	sim_ens     ENC_SIM_DATA
 }
 
 var serial_port [SERAIL_PORT_MAX]serial_port_info
@@ -129,8 +132,8 @@ func serialATsendCmd(portid int, strCom string, strCmd string) {
 	serial_port[portid].strInfo = fmt.Sprintf("%s", "T")
 }
 
-func serialClose(portid int, strCom string) {
-	vlog.Info("Port[%d] => close port %s", portid, strCom)
+func serialClose(portid int) {
+	vlog.Info("Port[%d] => close port %s", portid, serial_port[portid].portname)
 	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
 		serial_port[portid].comPort.Close()
 		serial_port[portid].port_status = PORT_STATUS_CLOSE
@@ -140,10 +143,15 @@ func serialClose(portid int, strCom string) {
 
 func serialProduce(portid int) {
 	getDevInfo(portid)
+	getProToken(portid)
 	getServInfo(portid)
-	cryptoVSIM(portid)
-	writeVsimData(portid)
+	cryptoVsim(portid)
+	setVsimData(portid)
 	serial_port[portid].port_status = PORT_STATUS_OPEN
+}
+
+func serialCheckDo(portid int) {
+	vlog.Info("Port[%d] => check device produce ...", portid)
 }
 
 func getDevInfo(portid int) {
@@ -165,27 +173,77 @@ func getDevInfo(portid int) {
 	var version string
 	modEC20[Module_CMD2_VER].CmdFunc(
 		Module_CMD2_VER, portid, serial_port[portid].comPort, &version)
+}
 
-	//TODO
+func getProToken(portid int) {
+	vlog.Info("Port[%d] p(2.0)=> get token info ...", portid)
 	serial_port[portid].dev_data.Token = getToken(serial_port[portid].dev_data.Imei)
 }
 
 func getServInfo(portid int) {
-	vlog.Info("Port[%d] p(2.0)=> get server info ...", portid)
+	vlog.Info("Port[%d] p(3.0)=> get server info ...", portid)
 	time.Sleep(time.Duration(2) * time.Second)
 
-	reqSimServer(serial_port[portid].dev_data, serial_port[portid].sim_data)
+	var dev_data devReqPlainData
+	var res []byte
+
+	dev_data.Imei = serial_port[portid].dev_data.Imei
+	dev_data.Token = serial_port[portid].dev_data.Token
+
+	//test
+	dev_data.Imei = "863412049788253"
+	dev_data.Token = "YR0NI-259CE-R3JI5-01DJN-ENY2Z"
+
+	reqSimServer(SERVER_PLAIN_v0, dev_data, &res)
+	err := json.Unmarshal(res, &serial_port[portid].sim_pv1)
+	if check(err, 3) != 0 {
+		return
+	}
+
+	vlog.Info("    Get siminfo: %+v", serial_port[portid].sim_pv1)
 	serial_port[portid].strInfo = fmt.Sprintf("%s", "S")
 }
 
-func cryptoVSIM(portid int) {
-	vlog.Info("Port[%d] p(3.0)=> crypto vsim data ...", portid)
+func cryptoVsim(portid int) {
+	vlog.Info("Port[%d] p(4.0)=> crypto vsim data ...", portid)
+
+	srcsim := SRC_SIM_DATA{
+		Imei:   serial_port[portid].dev_data.Imei,
+		ChipID: serial_port[portid].dev_data.Chipid,
+		CdmaData: CDMA_DATA{
+			Imsi_m: serial_port[portid].sim_pv1.ImsiM,
+			Uim_id: serial_port[portid].sim_pv1.Uimid,
+			Hrdupp: serial_port[portid].sim_pv1.Hrpdupp,
+		},
+	}
+
+	srcsim.VsimData[OPER_CN_MOBILE] = SIM_DATA{
+		Iccid: serial_port[portid].sim_pv1.Iccid,
+		Imsi:  serial_port[portid].sim_pv1.ImsiLTE,
+		Ki:    serial_port[portid].sim_pv1.Ki,
+		Opc:   serial_port[portid].sim_pv1.Opc,
+	}
+
+	Lib_vsim_encrypt(srcsim, &serial_port[portid].sim_ens)
+	fmt.Printf("EncData192:\n")
+	for index := 0; index < ENC_DATA_192; index++ {
+		ens := []byte(serial_port[portid].sim_ens.EncData192)
+		fmt.Printf("%02X ", ens[index])
+	}
+	fmt.Printf("\nEncData64:\n")
+	for index := 0; index < ENC_DATA_64; index++ {
+		ens := []byte(serial_port[portid].sim_ens.EncData64)
+		fmt.Printf("%02X ", ens[index])
+	}
+	fmt.Printf("\n")
+
 	time.Sleep(time.Duration(2) * time.Second)
 }
 
-func writeVsimData(portid int) {
-	vlog.Info("Port[%d] p(4.0)=> do producing on ...", portid)
+func setVsimData(portid int) {
+	vlog.Info("Port[%d] p(5.0)=> do producing on ...", portid)
 	time.Sleep(time.Duration(2) * time.Second)
+	vlog.Info("Port[%d] p(5.1)=> do producing ok!", portid)
 }
 
 func serialList() {

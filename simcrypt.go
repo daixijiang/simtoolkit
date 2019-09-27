@@ -56,6 +56,7 @@ import (
 	"fmt"
 	"syscall"
 	"unsafe"
+	"vlog"
 )
 
 const ICCID_STR_LEN = 20
@@ -166,7 +167,7 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, encsim *ENC_SIM_DATA) {
 	// C Call DLL
 	ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
 	if err != nil {
-		fmt.Printf("lib.dll运算结果为: %d\n", ret)
+		vlog.Info("    Lib_vsim_encrypt: %d\n", ret)
 		(*encsim).EncData192 = C.GoString(&encSim.encData192[0])
 		(*encsim).EncData64 = C.GoString(&encSim.encData64[0])
 
