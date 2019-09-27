@@ -33,7 +33,7 @@ const (
 	Btn_CMD_MAX     = 3
 )
 
-type btnHandler func(portid int)
+type btnHandler func(portid int) int
 
 type BtnDoTable struct {
 	BtnID   int

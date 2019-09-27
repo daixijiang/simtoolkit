@@ -67,21 +67,21 @@ type devResPlainData struct {
 	Hrpdupp string `json:"hrpdupp"`
 }
 
-func check(err error, code int) int {
+func checkerr(err error, code int, opername string) int {
 	if err != nil {
-		vlog.Error("Json parse error %d", code)
+		vlog.Error("    %s error %d", opername, code)
 		return code
 	}
 
 	return 0
 }
 
-func reqSimServer(version int, req interface{}, resp_data *[]byte) {
+func reqSimServer(version int, req interface{}, resp_data *[]byte) int {
 	var resp *http.Response
 
 	serverData, err := json.Marshal(req)
-	if check(err, 1) != 0 {
-		return
+	if checkerr(err, 1, "Json parse sim post-data") != 0 {
+		return 1
 	}
 
 	vlog.Info("    request: %s", string(serverData))
@@ -97,59 +97,19 @@ func reqSimServer(version int, req interface{}, resp_data *[]byte) {
 	request.Header.Set("Content-type", "application/json")
 
 	resp, err = client.Do(request)
-	if check(err, 2) != 0 {
-		return
+	if checkerr(err, 2, "Json parse https request") != 0 {
+		return 2
 	}
 
 	if *resp_data, err = ioutil.ReadAll(resp.Body); err == nil {
 		vlog.Info("    response: %s", *resp_data)
 	}
 
-	if check(err, 3) != 0 {
-		return
-	}
-}
-
-func reqSimPlainServer(req devReqPlainData, res devResPlainData) {
-	var resp *http.Response
-	var message devResPlainData
-	var data []byte
-
-	serverData, err := json.Marshal(req)
-	if check(err, 1) != 0 {
-		return
+	if checkerr(err, 3, "Json parse https response") != 0 {
+		return 3
 	}
 
-	vlog.Info("%s", string(serverData))
-	req_new := bytes.NewBuffer(serverData)
-
-	tr := &http.Transport{
-		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
-		DisableCompression: true,
-	}
-
-	client := &http.Client{Transport: tr}
-	request, _ := http.NewRequest("POST", serverPlainUrl, req_new)
-	request.Header.Set("Content-type", "application/json")
-
-	resp, err = client.Do(request)
-	if check(err, 2) != 0 {
-		return
-	}
-
-	if data, err = ioutil.ReadAll(resp.Body); err == nil {
-		vlog.Info("%s", data)
-	}
-
-	err = json.Unmarshal(data, &message)
-	if check(err, 3) != 0 {
-		return
-	}
-
-	vlog.Info("%+v", message)
-	res.Status = message.Status
-	res.Imei = message.Imei
-	res.Iccid = message.Iccid
+	return 0
 }
 
 func test_server_main() {
@@ -162,7 +122,7 @@ func test_server_main() {
 
 	reqSimServer(SERVER_PLAIN_v0, dev_data, &res)
 	err := json.Unmarshal(res, &sim_data)
-	if check(err, 3) != 0 {
+	if checkerr(err, 3, "Json parse https response") != 0 {
 		return
 	}
 

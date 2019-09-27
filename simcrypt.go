@@ -45,8 +45,8 @@ typedef struct {
 } SRC_SIM_DATA;
 
 typedef struct {
-	char encData192[ENC_DATA_192+1];
-	char encData64[ENC_DATA_64+1];
+	unsigned char encData192[ENC_DATA_192+1];
+	unsigned char encData64[ENC_DATA_64+1];
 } ENC_SIM_DATA;
 
 */
@@ -54,6 +54,7 @@ import "C"
 
 import (
 	"fmt"
+	"reflect"
 	"syscall"
 	"unsafe"
 	"vlog"
@@ -116,7 +117,13 @@ func StrPtr(s string) uintptr {
 	return uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(s)))
 }
 
-func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, encsim *ENC_SIM_DATA) {
+func BytesToString(b []byte) string {
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	sh := reflect.StringHeader{bh.Data, bh.Len}
+	return *(*string)(unsafe.Pointer(&sh))
+}
+
+func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
 	//processProfileData(SRC_SIM_DATA *profile, ENC_SIM_DATA *encProfile)
 	lib := syscall.NewLazyDLL("simcrypt.dll")
 	//fmt.Println("dll:", lib.Name)
@@ -168,8 +175,41 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, encsim *ENC_SIM_DATA) {
 	ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
 	if err != nil {
 		vlog.Info("    Lib_vsim_encrypt: %d\n", ret)
-		(*encsim).EncData192 = C.GoString(&encSim.encData192[0])
-		(*encsim).EncData64 = C.GoString(&encSim.encData64[0])
+
+		var ens_ascii_192 [ENC_DATA_192*2 + 1]byte
+		var ens_ascii_64 [ENC_DATA_64*2 + 1]byte
+
+		for index := 0; index < ENC_DATA_192; index++ {
+			ddh := 48 + byte(C.uchar(encSim.encData192[index]/16))
+			ddl := 48 + byte(C.uchar(encSim.encData192[index]%16))
+			if ddh > 57 {
+				ens_ascii_192[index*2] = ddh + 7
+			} else {
+				ens_ascii_192[index*2] = ddh
+			}
+			if ddl > 57 {
+				ens_ascii_192[index*2+1] = ddl + 7
+			} else {
+				ens_ascii_192[index*2+1] = ddl
+			}
+		}
+		(*res).EncData192 = string(ens_ascii_192[:])
+
+		for index := 0; index < ENC_DATA_64; index++ {
+			ddh := 48 + byte(C.uchar(encSim.encData64[index]/16))
+			ddl := 48 + byte(C.uchar(encSim.encData64[index]%16))
+			if ddh > 57 {
+				ens_ascii_64[index*2] = ddh + 7
+			} else {
+				ens_ascii_64[index*2] = ddh
+			}
+			if ddl > 57 {
+				ens_ascii_64[index*2+1] = ddl + 7
+			} else {
+				ens_ascii_64[index*2+1] = ddl
+			}
+		}
+		(*res).EncData64 = string(ens_ascii_64[:])
 
 		/*
 			fmt.Printf("imei: %s\n", C.GoString(&srcSim.imei[0]))
@@ -182,22 +222,13 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, encsim *ENC_SIM_DATA) {
 			fmt.Printf("ki: %s\n", C.GoString(&srcSim.vsimData[0].ki[0]))
 			fmt.Printf("opc: %s\n", C.GoString(&srcSim.vsimData[0].opc[0]))
 
-			fmt.Printf("\nEncData192:\n")
-			for index := 0; index < ENC_DATA_192; index++ {
-				ens := []byte((*encsim).EncData192)
-				fmt.Printf("%02X ", ens[index])
-			}
-			fmt.Printf("\n")
-			fmt.Printf("\nEncData64:\n")
-			for index := 0; index < ENC_DATA_64; index++ {
-				ens := []byte((*encsim).EncData64)
-				fmt.Printf("%02X ", ens[index])
-			}
-			fmt.Printf("\n")
+			fmt.Printf("de192: %s\n", (*res).EncData192)
+			fmt.Printf("de64: %s\n", (*res).EncData64)
 		*/
 	}
 }
 
+//func main() {
 func test_vsim_encrypt() {
 	var encsim ENC_SIM_DATA
 
@@ -230,15 +261,6 @@ func test_vsim_encrypt() {
 	}
 
 	Lib_vsim_encrypt(srcsim, &encsim)
-	fmt.Printf("\nEncData192:\n")
-	for index := 0; index < ENC_DATA_192; index++ {
-		ens := []byte(encsim.EncData192)
-		fmt.Printf("%02X ", ens[index])
-	}
-	fmt.Printf("\nEncData64:\n")
-	for index := 0; index < ENC_DATA_64; index++ {
-		ens := []byte(encsim.EncData64)
-		fmt.Printf("%02X ", ens[index])
-	}
-	fmt.Printf("\n")
+	fmt.Printf("de192: %s\n", encsim.EncData192)
+	fmt.Printf("de64: %s\n", encsim.EncData64)
 }
