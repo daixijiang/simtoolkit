@@ -66,7 +66,7 @@ func portIsOK(portid int) int {
 }
 
 func serialWriteAndEcho(portid int, s *serial.Port, strCmd string) string {
-	buf := make([]byte, 128)
+	buf := make([]byte, 512)
 	at_reply[portid] = ""
 
 	n, err := s.Read(buf)
