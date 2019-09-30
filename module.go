@@ -48,17 +48,29 @@ type ModuleTable struct {
 	CmdFunc cmdHandler
 }
 
+type ProModule struct {
+	Mod      *[Module_TAB_AT_CMD_MAX]ModuleTable
+	UrlVer   int
+	TestFlag int
+}
+
 var modEC20 [Module_TAB_AT_CMD_MAX]ModuleTable
-var myMod *[Module_TAB_AT_CMD_MAX]ModuleTable
-var myUrlVer int
+var myProduce *ProModule
 
 func module_init() {
 	module_ec20_init()
 	// add list of module init
 
 	// default is ec20
-	myMod = &modEC20
-	myUrlVer = SERVER_PLAIN_v0
+	myProduce = &ProModule{
+		Mod:      &modEC20,
+		UrlVer:   SERVER_PLAIN_v0,
+		TestFlag: 0,
+	}
+
+	/* test */
+	//myProduce.UrlVer = SERVER_Cipher_v1
+	//myProduce.TestFlag = 1
 }
 
 /* ModuleTable end */

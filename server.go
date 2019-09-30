@@ -27,8 +27,17 @@ const serverPlainUrl string = "https://rdp.showmac.cn/api/v1/profile/clear/get"
 
 // ciphertext
 const serverCipherUrlV1 string = "https://rdp.showmac.cn/api/v1/profile/get"
+const serverCipherUrlV2 string = "https://rdp.showmac.cn/api/v2/profile/get"
+const serverCipherUrlV3 string = "https://rdp.showmac.cn/api/v3/profile/get"
+const serverCipherUrlV4 string = "https://rdp.showmac.cn/api/v4/profile/get"
 
-var serverUrl = [SERVER_MAX]string{serverPlainUrl, serverCipherUrlV1}
+var serverUrl = [SERVER_MAX]string{
+	serverPlainUrl,
+	serverCipherUrlV1,
+	serverCipherUrlV2,
+	serverCipherUrlV3,
+	serverCipherUrlV4,
+}
 
 type devReqData struct {
 	Ver    string `json:"version"`
