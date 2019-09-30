@@ -40,10 +40,6 @@ func token_init() {
 	myTokenStat.total = 0
 	myTokenStat.current = 0
 
-	//for (index := 0; index < TOKEN_MAX; index++) {
-	//myTokenStat.sToken[index] = {}
-	//}
-
 	loadTokenCfg(TOKEN_FILE_DAFAULT)
 }
 

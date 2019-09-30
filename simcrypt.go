@@ -1,3 +1,7 @@
+/* VSIM Serial Product Toolkit
+ * Author: daixijiang@gmail.com (2019)
+ */
+
 package main
 
 /*
@@ -54,7 +58,6 @@ import "C"
 
 import (
 	"fmt"
-	"reflect"
 	"syscall"
 	"unsafe"
 	"vlog"
@@ -72,10 +75,12 @@ const CHIPID_STR_LEN = 32
 const ENC_DATA_192 = 192
 const ENC_DATA_64 = 64
 
-const OPER_CN_MOBILE = 0
-const OPER_CN_UNICOM = 1
-const OPER_CN_TELECOM = 2
-const OPER_MAX = 3
+const (
+	OPER_CN_MOBILE  = 0
+	OPER_CN_UNICOM  = 1
+	OPER_CN_TELECOM = 2
+	OPER_MAX        = 3
+)
 
 type SIM_DATA struct {
 	Iccid string
@@ -109,22 +114,58 @@ func Min(x, y int) int {
 	return y
 }
 
-func IntPtr(n int) uintptr {
-	return uintptr(n)
+func Hex2Ascii(src_hex []byte) []byte {
+	alen := len(src_hex)
+	tobuf := make([]byte, alen*2)
+
+	/* hex to ascii */
+	for index := 0; index < alen; index++ {
+		ddh := byte(src_hex[index] / 16)
+		ddl := byte(src_hex[index] % 16)
+		if ddh > 9 {
+			tobuf[index*2] = ddh + 'A' - 10
+		} else {
+			tobuf[index*2] = ddh + '0'
+		}
+
+		if ddl > 9 {
+			tobuf[index*2+1] = ddl + 'A' - 10
+		} else {
+			tobuf[index*2+1] = ddl + '0'
+		}
+	}
+
+	return tobuf
 }
 
-func StrPtr(s string) uintptr {
-	return uintptr(unsafe.Pointer(syscall.StringToUTF16Ptr(s)))
-}
+func Ascii2Hex(src_ascii []byte) []byte {
+	alen := len(src_ascii) / 2
+	tobuf := make([]byte, alen)
 
-func BytesToString(b []byte) string {
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	sh := reflect.StringHeader{bh.Data, bh.Len}
-	return *(*string)(unsafe.Pointer(&sh))
+	/* ascii to hex */
+	for index := 0; index < alen; index++ {
+		ddh := src_ascii[index*2]
+		ddl := src_ascii[index*2+1]
+
+		if ddh >= '0' && ddh <= '9' {
+			ddh = ddh - '0'
+		} else if ddh >= 'A' && ddh <= 'F' {
+			ddh = ddh - 'A' + 10
+		}
+
+		if ddl >= '0' && ddl <= '9' {
+			ddl = ddl - '0'
+		} else if ddl >= 'A' && ddl <= 'F' {
+			ddl = ddl - 'A' + 10
+		}
+
+		tobuf[index] = byte(ddh*16 + ddl)
+	}
+
+	return tobuf
 }
 
 func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
-	//processProfileData(SRC_SIM_DATA *profile, ENC_SIM_DATA *encProfile)
 	lib := syscall.NewLazyDLL("simcrypt.dll")
 	//fmt.Println("dll:", lib.Name)
 	vsim_encrypt := lib.NewProc("processProfileData")
@@ -174,11 +215,12 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
 	// C Call DLL
 	ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
 	if err != nil {
-		vlog.Info("    Lib_vsim_encrypt: %d\n", ret)
+		vlog.Info("    Lib_vsim_encrypt: %d\n", int32(ret))
 
 		var ens_ascii_192 [ENC_DATA_192*2 + 1]byte
 		var ens_ascii_64 [ENC_DATA_64*2 + 1]byte
 
+		/* hex to ascii */
 		for index := 0; index < ENC_DATA_192; index++ {
 			ddh := 48 + byte(C.uchar(encSim.encData192[index]/16))
 			ddl := 48 + byte(C.uchar(encSim.encData192[index]%16))
@@ -193,6 +235,7 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
 				ens_ascii_192[index*2+1] = ddl
 			}
 		}
+		/* end */
 		(*res).EncData192 = string(ens_ascii_192[:])
 
 		for index := 0; index < ENC_DATA_64; index++ {

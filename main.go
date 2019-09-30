@@ -13,7 +13,7 @@ import (
 
 const szTitle string = "VSIM Serial Product Toolkit"
 const szBanner string = "Welcome use vsim toolkit!"
-const szVersion string = "V2019.09.11"
+const szVersion string = "V2019.09.09"
 
 const scaling = 1.3
 

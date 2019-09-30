@@ -1,7 +1,5 @@
 /* VSIM Serial Product Toolkit
  * Author: daixijiang@gmail.com (2019)
- *
- * check: curl -X POST -k -i 'https://rdp.showmac.cn/api/v1/profile/get' --data '{"imei":"868575021892064","chipid":"20171026050559A399032A3416886391","token":"KD1MQ-BWJGR-8ZB29-9D59J"}'
  */
 
 package main
@@ -15,12 +13,14 @@ import (
 	"vlog"
 )
 
-const SERVER_PLAIN_v0 = 0
-const SERVER_Cipher_v1 = 1
-const SERVER_Cipher_v2 = 2
-const SERVER_Cipher_v3 = 3
-const SERVER_Cipher_v4 = 4
-const SERVER_MAX = 5
+const (
+	SERVER_PLAIN_v0  = 0
+	SERVER_Cipher_v1 = 1
+	SERVER_Cipher_v2 = 2
+	SERVER_Cipher_v3 = 3
+	SERVER_Cipher_v4 = 4
+	SERVER_MAX       = 5
+)
 
 // plaintext
 const serverPlainUrl string = "https://rdp.showmac.cn/api/v1/profile/clear/get"

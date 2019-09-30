@@ -26,7 +26,6 @@ type portGroup struct {
 }
 
 const (
-	// prepare
 	Btn_CMD_Produce = 0
 	Btn_CMD_CheckDo = 1
 	Btn_CMD_Close   = 2
@@ -68,7 +67,6 @@ func newportGroup() (pg *portGroup) {
 	return pg
 }
 
-// gui function
 func (pg *portGroup) showUI(w *nucular.Window) {
 	pg.showMenuBar(w)
 	w.Row(5).Dynamic(1)
@@ -183,7 +181,6 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 func (pg *portGroup) openMessage(w *nucular.Window, message string) {
 	var wf nucular.WindowFlags
 	wf |= nucular.WindowBorder
-	//wf |= nucular.WindowScalable
 	wf |= nucular.WindowMovable
 	wf |= nucular.WindowNoScrollbar
 	wf |= nucular.WindowClosable
@@ -259,5 +256,4 @@ func (pg *portGroup) taskBtnHandle(oper int, portid int) {
 
 func (pg *portGroup) btnLoadToken(w *nucular.Window) {
 	loadTokenCfg("./token.cfg")
-	//test_vsim_encrypt()
 }
