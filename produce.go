@@ -260,15 +260,15 @@ func getServInfo(portid int) int {
 func getServInfo_pv1(portid int) int {
 	var res []byte
 
-	/* test */
 	dev_data := devReqPlainData{
-		Imei:  "863412049788253",
-		Token: "YR0NI-259CE-R3JI5-01DJN-ENY2Z",
+		Imei:  serial_port[portid].dev_data.Imei,
+		Token: serial_port[portid].dev_data.Token,
 	}
 
-	if myProduce.TestFlag == 0 {
-		dev_data.Imei = serial_port[portid].dev_data.Imei
-		dev_data.Token = serial_port[portid].dev_data.Token
+	/* test */
+	if myProduce.TestFlag == 1 {
+		dev_data.Imei = "863412049788253"
+		dev_data.Token = "YR0NI-259CE-R3JI5-01DJN-ENY2Z"
 	}
 
 	reqSimServer(SERVER_PLAIN_v0, dev_data, &res)
@@ -290,19 +290,19 @@ func getServInfo_pv1(portid int) int {
 func getServInfo_cv1(portid int, version int) int {
 	var res []byte
 
-	/* test */
 	dev_data := devReqData{
-		Ver:    "CosVer_1.1.4",
-		Imei:   "867732034973305",
-		Chipid: "3934363531303236320A3A373B3C3A3B",
-		Token:  "WPAFE-7O2T3-SPEX9-DUWBJ",
+		Ver:    serial_port[portid].dev_data.Ver,
+		Imei:   serial_port[portid].dev_data.Imei,
+		Chipid: serial_port[portid].dev_data.Chipid,
+		Token:  serial_port[portid].dev_data.Token,
 	}
 
-	if myProduce.TestFlag == 0 {
-		dev_data.Ver = serial_port[portid].dev_data.Ver
-		dev_data.Imei = serial_port[portid].dev_data.Imei
-		dev_data.Chipid = serial_port[portid].dev_data.Chipid
-		dev_data.Token = serial_port[portid].dev_data.Token
+	/* test */
+	if myProduce.TestFlag == 1 {
+		dev_data.Ver = "CosVer_1.1.4"
+		dev_data.Imei = "867732034973305"
+		dev_data.Chipid = "3934363531303236320A3A373B3C3A3B"
+		dev_data.Token = "WPAFE-7O2T3-SPEX9-DUWBJ"
 	}
 
 	reqSimServer(version, dev_data, &res)
@@ -327,9 +327,9 @@ func getVsimDe(portid int) int {
 
 	ver := myProduce.UrlVer
 	if ver == SERVER_PLAIN_v0 {
-		ret = getVsimDe_cv1(portid)
-	} else {
 		ret = getVsimDe_pv(portid)
+	} else {
+		ret = getVsimDe_cv1(portid)
 	}
 
 	vlog.Info("    crypto de192: %s", serial_port[portid].sim_ens.EncData192)
@@ -338,7 +338,7 @@ func getVsimDe(portid int) int {
 	return ret
 }
 
-func getVsimDe_cv1(portid int) int {
+func getVsimDe_pv(portid int) int {
 	srcsim := SRC_SIM_DATA{
 		Imei:   serial_port[portid].dev_data.Imei,
 		ChipID: serial_port[portid].dev_data.Chipid,
@@ -360,7 +360,7 @@ func getVsimDe_cv1(portid int) int {
 	return 0
 }
 
-func getVsimDe_pv(portid int) int {
+func getVsimDe_cv1(portid int) int {
 	encdata := []byte(serial_port[portid].sim_cv1.De)
 	delen := len(serial_port[portid].sim_cv1.De)
 	if delen > ENC_DATA_192 {
