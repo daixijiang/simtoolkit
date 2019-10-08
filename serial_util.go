@@ -6,6 +6,7 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"strings"
 	"time"
 	"vlog"
@@ -13,12 +14,12 @@ import (
 	"github.com/tarm/serial"
 )
 
-const COM_PREFIX string = "COM"
 const APP_AT_OK string = "AT"
 
 /* Port struct */
 const SERAIL_PORT_MAX = 8
 
+var COM_PREFIX string
 var at_reply [SERAIL_PORT_MAX]string
 
 const (
@@ -142,4 +143,16 @@ func serialClose(portid int) int {
 
 func serialList() {
 	//TODO, list ports
+}
+
+func serial_util_init() {
+	sysType := runtime.GOOS
+
+	if sysType == "linux" {
+		COM_PREFIX = "/dev/ttyUSB"
+	} else if sysType == "windows" {
+		COM_PREFIX = "COM"
+	} else {
+		COM_PREFIX = "COM"
+	}
 }

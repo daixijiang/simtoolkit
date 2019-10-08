@@ -25,6 +25,7 @@ func main() {
 	log_init()
 	module_init()
 	token_init()
+	serial_util_init()
 
 	wnd := nucular.NewMasterWindow(0, szTitle, pg.showUI)
 	wnd.SetStyle(nstyle.FromTheme(mytheme, scaling))
