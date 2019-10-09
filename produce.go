@@ -51,10 +51,12 @@ func serialCheckDo(portid int) int {
 	vlog.Info("Port[%d] => check device produce ...", portid)
 
 	//check1 ccid "AT+CCID"
-	(*myProduce.Mod)[Module_CMD3_CCID].CmdFunc(
-		Module_CMD3_CCID, portid,
-		serial_port[portid].comPort,
-		&result)
+	if (*myProduce.Mod)[Module_CMD3_CCID].CmdFunc != nil {
+		(*myProduce.Mod)[Module_CMD3_CCID].CmdFunc(
+			Module_CMD3_CCID, portid,
+			serial_port[portid].comPort,
+			&result)
+	}
 
 	if result != serial_port[portid].sim_pv1.Iccid {
 		vlog.Info("!!!!check ccid err: %s %s", result, serial_port[portid].sim_pv1.Iccid)
@@ -63,10 +65,12 @@ func serialCheckDo(portid int) int {
 	}
 
 	//TODO, check2 creg "AT+CREG?"
-	(*myProduce.Mod)[Module_CMD3_CREG].CmdFunc(
-		Module_CMD3_CREG, portid,
-		serial_port[portid].comPort,
-		&result)
+	if (*myProduce.Mod)[Module_CMD3_CREG].CmdFunc != nil {
+		(*myProduce.Mod)[Module_CMD3_CREG].CmdFunc(
+			Module_CMD3_CREG, portid,
+			serial_port[portid].comPort,
+			&result)
+	}
 	vlog.Info("    get creg: %s", result)
 	return 0
 }
@@ -75,20 +79,26 @@ func getDevInfo(portid int) int {
 	vlog.Info("Port[%d] p(1.0)=> get device info ...", portid)
 	time.Sleep(time.Duration(1) * time.Second)
 
-	(*myProduce.Mod)[Module_CMD2_IMEI].CmdFunc(
-		Module_CMD2_IMEI, portid,
-		serial_port[portid].comPort,
-		&serial_port[portid].dev_data.Imei)
+	if (*myProduce.Mod)[Module_CMD2_IMEI].CmdFunc != nil {
+		(*myProduce.Mod)[Module_CMD2_IMEI].CmdFunc(
+			Module_CMD2_IMEI, portid,
+			serial_port[portid].comPort,
+			&serial_port[portid].dev_data.Imei)
+	}
 
-	(*myProduce.Mod)[Module_CMD2_CHIPID].CmdFunc(
-		Module_CMD2_CHIPID, portid,
-		serial_port[portid].comPort,
-		&serial_port[portid].dev_data.Chipid)
+	if (*myProduce.Mod)[Module_CMD2_CHIPID].CmdFunc != nil {
+		(*myProduce.Mod)[Module_CMD2_CHIPID].CmdFunc(
+			Module_CMD2_CHIPID, portid,
+			serial_port[portid].comPort,
+			&serial_port[portid].dev_data.Chipid)
+	}
 
-	(*myProduce.Mod)[Module_CMD2_VER].CmdFunc(
-		Module_CMD2_VER, portid,
-		serial_port[portid].comPort,
-		&serial_port[portid].dev_data.Ver)
+	if (*myProduce.Mod)[Module_CMD2_VER].CmdFunc != nil {
+		(*myProduce.Mod)[Module_CMD2_VER].CmdFunc(
+			Module_CMD2_VER, portid,
+			serial_port[portid].comPort,
+			&serial_port[portid].dev_data.Ver)
+	}
 
 	return 0
 }
@@ -240,16 +250,21 @@ func setVsimData(portid int) int {
 	var result string
 	vlog.Info("Port[%d] p(5.0)=> do producing on ...", portid)
 
-	(*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc(
-		Module_CMD2_SIM192, portid,
-		serial_port[portid].comPort,
-		&result)
+	if (*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc != nil {
+		(*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc(
+			Module_CMD2_SIM192, portid,
+			serial_port[portid].comPort,
+			&result)
+	}
 	vlog.Info("    set de192 %s", result)
 
-	(*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc(
-		Module_CMD2_SIM64, portid,
-		serial_port[portid].comPort,
-		&result)
+	if (*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc != nil {
+		(*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc(
+			Module_CMD2_SIM64, portid,
+			serial_port[portid].comPort,
+			&result)
+	}
+
 	vlog.Info("    set de64 %s", result)
 
 	vlog.Info("Port[%d] p(5.1)=> do producing ok!", portid)

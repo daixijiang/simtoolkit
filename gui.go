@@ -85,16 +85,16 @@ func (pg *portGroup) showUI(w *nucular.Window) {
 	}
 
 	if w.Button(label.T("ProduceAll"), false) {
-		pg.btnHandleAll(w, Btn_CMD_Produce)
+		pg.btnHandleAll(w, Btn_CMD_Produce, true)
 	}
 
 	if w.Button(label.T("CheckDoAll"), false) {
-		pg.btnHandleAll(w, Btn_CMD_CheckDo)
+		pg.btnHandleAll(w, Btn_CMD_CheckDo, true)
 	}
 
 	w.Row(30).Dynamic(2)
 	if w.Button(label.T("CloseAll"), false) {
-		pg.btnHandleAll(w, Btn_CMD_Close)
+		pg.btnHandleAll(w, Btn_CMD_Close, false)
 	}
 
 	if w.Button(label.T("Quit"), false) {
@@ -108,26 +108,22 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 	w.LabelColored(fmt.Sprintf("** %s  (%s) **", szBanner, szVersion), "CC", clryellow)
 
 	w.MenubarBegin()
-	if w := w.Menu(label.TA("THEME", "RC"), 150, nil); w != nil {
+	if w := w.Menu(label.TA("Module", "RC"), 150, nil); w != nil {
 		w.Row(25).Dynamic(1)
-		newtheme := pg.Theme
-		if w.OptionText("Default Theme", newtheme == nstyle.DefaultTheme) {
-			newtheme = nstyle.DefaultTheme
+		curMod := myProduce.Mod
+		if w.OptionText("EC20", myProduce.Mod == &modEC20) {
+			myProduce.Mod = &modEC20
+			myProduce.UrlVer = SERVER_PLAIN_v0
 		}
-		if w.OptionText("White Theme", newtheme == nstyle.WhiteTheme) {
-			newtheme = nstyle.WhiteTheme
+		if w.OptionText("SIM800C", myProduce.Mod == &modSIM800C) {
+			myProduce.Mod = &modSIM800C
+			myProduce.UrlVer = SERVER_Cipher_v1
 		}
-		if w.OptionText("Red Theme", newtheme == nstyle.RedTheme) {
-			newtheme = nstyle.RedTheme
-		}
-		if w.OptionText("Dark Theme", newtheme == nstyle.DarkTheme) {
-			newtheme = nstyle.DarkTheme
-		}
-		if newtheme != pg.Theme {
-			pg.Theme = newtheme
-			w.Master().SetStyle(nstyle.FromTheme(pg.Theme, w.Master().Style().Scaling))
+		if curMod != myProduce.Mod {
+			pg.btnHandleAll(w, Btn_CMD_Close, false)
 		}
 	}
+
 	w.MenubarEnd()
 }
 
@@ -144,6 +140,10 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 			sw.Label(string("("+serial_port[portid].strInfo+")"), "LC")
 		}
 
+		if portid >= SERAIL_PORT_MAX {
+			vlog.Info("showPortG %d", portid)
+			return
+		}
 		pg.CurrentPortId[portid] = sw.ComboSimple(pg.ComboPorts, pg.CurrentPortId[portid], 25)
 		strCom := COM_RNAME_PREFIX + pg.ComboPorts[pg.CurrentPortId[portid]]
 
@@ -221,36 +221,39 @@ func (pg *portGroup) btnProduce(w *nucular.Window, portid int, strCom string) {
 	}
 }
 
-func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int) {
-	cntCheck := 0
-	portlist := ""
+func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int, check bool) {
+	if check {
+		cntCheck := 0
+		portlist := ""
 
-	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
-		if pg.Checkbox[port_id] {
-			cntCheck++
-			if portIsOK(port_id) == 0 {
-				portlist += fmt.Sprintf("%d,", port_id)
-			}
-		}
-	}
-
-	vlog.Info("Check port(%d): %s", cntCheck, portlist)
-
-	if cntCheck == 0 {
-		pg.openMessage(w, "Please select(open) the ports!")
-	} else if portlist != "" {
-		msg := fmt.Sprintf("Please select(open) the ports: [%s]!", portlist)
-		pg.openMessage(w, msg)
-	} else {
-		vlog.Info("start %s all", myBtnTab[oper].BtnStr)
-		wg.Add(cntCheck)
 		for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
-			if pg.Checkbox[port_id] && (portIsOK(port_id) == 1) {
-				go pg.taskBtnHandle(oper, port_id)
+			if pg.Checkbox[port_id] {
+				cntCheck++
+				if portIsOK(port_id) == 0 {
+					portlist += fmt.Sprintf("%d,", port_id)
+				}
 			}
 		}
-		wg.Wait()
+		vlog.Info("Check port(%d): %s", cntCheck, portlist)
+
+		if cntCheck == 0 {
+			pg.openMessage(w, "Please select(open) the ports!")
+		} else if check && (portlist != "") {
+			msg := fmt.Sprintf("Please select(open) the ports: [%s]!", portlist)
+			pg.openMessage(w, msg)
+		}
+
+		return
 	}
+
+	vlog.Info("start %s all", myBtnTab[oper].BtnStr)
+	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
+		if (pg.Checkbox[port_id] || !check) && (portIsOK(port_id) != 0) {
+			wg.Add(1)
+			go pg.taskBtnHandle(oper, port_id)
+		}
+	}
+	wg.Wait()
 }
 
 func (pg *portGroup) taskBtnHandle(oper int, portid int) {
@@ -263,6 +266,8 @@ func (pg *portGroup) btnLoadToken(w *nucular.Window) {
 }
 
 func (pg *portGroup) btnRefreshPort(w *nucular.Window) {
+	pg.btnHandleAll(w, Btn_CMD_Close, false)
 	ports_list = serialList()
 	pg.ComboPorts = ports_list
+	vlog.Info("Portlists: %v", ports_list)
 }

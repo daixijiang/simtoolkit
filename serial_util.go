@@ -46,19 +46,8 @@ var ports_list []string
 /* Port end */
 
 func portIsOK(portid int) int {
-	if portid == SERAIL_PORT_MAX {
-		for index := 0; index < SERAIL_PORT_MAX; index++ {
-			if serial_port[index].port_status == PORT_STATUS_CLOSE {
-				return 0
-			}
-		}
+	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
 		return 1
-	} else {
-		if serial_port[portid].port_status == PORT_STATUS_CLOSE {
-			return 0
-		} else {
-			return 1
-		}
 	}
 
 	return 0
@@ -138,6 +127,7 @@ func serialClose(portid int) int {
 	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
 		serial_port[portid].comPort.Close()
 		serial_port[portid].port_status = PORT_STATUS_CLOSE
+		serial_port[portid] = serial_port_info{}
 	}
 	serial_port[portid].strInfo = fmt.Sprintf("%s", "*")
 	return 0
@@ -156,7 +146,7 @@ func serialList() []string {
 		}
 	}
 
-	if (len(portlist) == 0) {
+	if len(portlist) == 0 {
 		portlist = append(portlist, "null")
 	}
 

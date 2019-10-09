@@ -55,7 +55,9 @@ type ProModule struct {
 }
 
 var modEC20 [Module_TAB_AT_CMD_MAX]ModuleTable
+var modSIM800C [Module_TAB_AT_CMD_MAX]ModuleTable
 var myProduce *ProModule
+var current_module int
 
 func module_init() {
 	module_ec20_init()
