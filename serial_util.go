@@ -19,7 +19,8 @@ const APP_AT_OK string = "AT"
 /* Port struct */
 const SERAIL_PORT_MAX = 8
 
-var COM_PREFIX string
+var COM_RNAME_PREFIX string
+var COM_SNAME_PREFIX string
 var at_reply [SERAIL_PORT_MAX]string
 
 const (
@@ -40,6 +41,7 @@ type serial_port_info struct {
 }
 
 var serial_port [SERAIL_PORT_MAX]serial_port_info
+var ports_list []string
 
 /* Port end */
 
@@ -141,18 +143,40 @@ func serialClose(portid int) int {
 	return 0
 }
 
-func serialList() {
-	//TODO, list ports
+func serialList() []string {
+	portlist := make([]string, 0)
+	for id := 0; id < 128; id++ {
+		strCom := fmt.Sprintf("%s%s%d", COM_RNAME_PREFIX, COM_SNAME_PREFIX, id)
+		strSCom := fmt.Sprintf("%s%d", COM_SNAME_PREFIX, id)
+		c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: 100}
+		s, err := serial.OpenPort(c)
+		if err == nil {
+			s.Close()
+			portlist = append(portlist, strSCom)
+		}
+	}
+
+	if (len(portlist) == 0) {
+		portlist = append(portlist, "null")
+	}
+
+	return portlist
 }
 
 func serial_util_init() {
 	sysType := runtime.GOOS
 
 	if sysType == "linux" {
-		COM_PREFIX = "/dev/ttyUSB"
+		COM_SNAME_PREFIX = "USB"
+		COM_RNAME_PREFIX = "/dev/tty"
 	} else if sysType == "windows" {
-		COM_PREFIX = "COM"
+		COM_SNAME_PREFIX = "com"
+		COM_RNAME_PREFIX = ""
 	} else {
-		COM_PREFIX = "COM"
+		COM_SNAME_PREFIX = "USB"
+		COM_RNAME_PREFIX = "/dev/tty"
 	}
+
+	ports_list = serialList()
+	vlog.Info("Portlists: %v", ports_list)
 }

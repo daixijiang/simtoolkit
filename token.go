@@ -44,6 +44,9 @@ func token_init() {
 }
 
 func loadTokenCfg(filename string) {
+	myTokenStat.total = 0
+	myTokenStat.current = 0
+
 	readTokenfile(filename)
 	vlog.Info("Load token total %d", myTokenStat.total)
 }

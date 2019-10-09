@@ -20,13 +20,12 @@ const scaling = 1.3
 var mytheme nstyle.Theme = nstyle.DarkTheme
 
 func main() {
-	pg := newportGroup()
-
 	log_init()
 	module_init()
 	token_init()
 	serial_util_init()
 
+	pg := newportGroup()
 	wnd := nucular.NewMasterWindow(0, szTitle, pg.showUI)
 	wnd.SetStyle(nstyle.FromTheme(mytheme, scaling))
 	wnd.Main()

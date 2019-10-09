@@ -165,10 +165,19 @@ func Ascii2Hex(src_ascii []byte) []byte {
 	return tobuf
 }
 
-func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
-	lib := syscall.NewLazyDLL("simcrypt.dll")
-	//fmt.Println("dll:", lib.Name)
-	vsim_encrypt := lib.NewProc("processProfileData")
+func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
+	lib, err := syscall.LoadLibrary("simcrypt.dll")
+	if err != nil {
+		vlog.Info("    %s:%s\n", "simcrypt.dll", err.Error())
+		return -1
+	}
+
+	defer syscall.FreeLibrary(lib)
+	vsim_encrypt, err := syscall.GetProcAddress(lib, "processProfileData")
+	if err != nil {
+		vlog.Info("    %s:%s\n", "processProfileData", err.Error())
+		return -2
+	}
 
 	// C struct set and transform
 	var srcSim C.SRC_SIM_DATA
@@ -213,10 +222,10 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
 	}
 
 	// C Call DLL
-	ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
+	ret, _, err := syscall.Syscall(uintptr(vsim_encrypt), 2, uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)), 0)
 	if err != nil {
+		vlog.Info("    %s\n", err.Error())
 		vlog.Info("    Lib_vsim_encrypt: %d\n", int32(ret))
-
 		var ens_ascii_192 [ENC_DATA_192*2 + 1]byte
 		var ens_ascii_64 [ENC_DATA_64*2 + 1]byte
 
@@ -269,6 +278,7 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
 			fmt.Printf("de64: %s\n", (*res).EncData64)
 		*/
 	}
+	return int(ret)
 }
 
 //func main() {

@@ -220,8 +220,7 @@ func getVsimDe_pv(portid int) int {
 		Opc:   serial_port[portid].sim_pv1.Opc,
 	}
 
-	Lib_vsim_encrypt(srcsim, &serial_port[portid].sim_ens)
-	return 0
+	return Lib_vsim_encrypt(srcsim, &serial_port[portid].sim_ens)
 }
 
 func getVsimDe_cv1(portid int) int {

@@ -20,9 +20,11 @@ import (
 type portGroup struct {
 	Theme         nstyle.Theme
 	Message       string
-	PortEditor    [SERAIL_PORT_MAX]nucular.TextEditor
 	Checkbox      [SERAIL_PORT_MAX]bool
 	TestCmdEditor [SERAIL_PORT_MAX]nucular.TextEditor
+	CheckValues   [SERAIL_PORT_MAX]int
+	CurrentPortId [SERAIL_PORT_MAX]int
+	ComboPorts    []string
 }
 
 const (
@@ -49,12 +51,9 @@ func newportGroup() (pg *portGroup) {
 
 	pg.Message = ""
 	pg.Theme = mytheme
+	pg.ComboPorts = ports_list
 
 	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
-		pg.PortEditor[port_id].Flags = nucular.EditSelectable
-		pg.PortEditor[port_id].Buffer = []rune(fmt.Sprintf("%d", port_id))
-		pg.PortEditor[port_id].Maxlen = 2
-
 		pg.TestCmdEditor[port_id].Flags = nucular.EditSelectable
 		pg.TestCmdEditor[port_id].Buffer = []rune("AT")
 		pg.TestCmdEditor[port_id].Maxlen = 64
@@ -76,7 +75,11 @@ func (pg *portGroup) showUI(w *nucular.Window) {
 	}
 
 	w.Row(5).Dynamic(1)
-	w.Row(30).Dynamic(3)
+	w.Row(30).Dynamic(4)
+	if w.Button(label.T("RefreshPort"), false) {
+		pg.btnRefreshPort(w)
+	}
+
 	if w.Button(label.T("LoadToken"), false) {
 		pg.btnLoadToken(w)
 	}
@@ -132,7 +135,7 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 	w.Row(40).Dynamic(1)
 	if sw := w.GroupBegin("Group Port", nucular.WindowNoScrollbar|nucular.WindowBorder); sw != nil {
 		sw.Row(4).Dynamic(1)
-		sw.Row(25).Static(90, 30, 40, 70, 165, 70, 70, 70)
+		sw.Row(25).Static(90, 30, 70, 70, 135, 70, 70, 70)
 		sw.CheckboxText(fmt.Sprintf("Port[%d]: ", portid), &pg.Checkbox[portid])
 
 		if serial_port[portid].strInfo == "" {
@@ -141,12 +144,13 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 			sw.Label(string("("+serial_port[portid].strInfo+")"), "LC")
 		}
 
-		pg.PortEditor[portid].Edit(sw)
+		pg.CurrentPortId[portid] = sw.ComboSimple(pg.ComboPorts, pg.CurrentPortId[portid], 25)
+		strCom := COM_RNAME_PREFIX + pg.ComboPorts[pg.CurrentPortId[portid]]
 
-		strCom := COM_PREFIX + string(pg.PortEditor[portid].Buffer)
 		if sw.Button(label.T("Open"), false) {
 			if serialOpen(portid, strCom) != 0 {
-				pg.PortEditor[portid].Flags = nucular.EditNeverInsertMode
+				msg := fmt.Sprintf("Filed to open the %s!", strCom)
+				pg.openMessage(w, msg)
 			}
 		}
 
@@ -256,4 +260,9 @@ func (pg *portGroup) taskBtnHandle(oper int, portid int) {
 
 func (pg *portGroup) btnLoadToken(w *nucular.Window) {
 	loadTokenCfg("./token.cfg")
+}
+
+func (pg *portGroup) btnRefreshPort(w *nucular.Window) {
+	ports_list = serialList()
+	pg.ComboPorts = ports_list
 }

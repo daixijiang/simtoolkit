@@ -186,7 +186,7 @@ func Ascii2Hex(src_ascii []byte) []byte {
 	return tobuf
 }
 
-func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
+func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
 	///lib := syscall.NewLazyDLL("simcrypt.dll")
 	///vsim_encrypt := lib.NewProc("processProfileData")
 
@@ -289,6 +289,7 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) {
 			fmt.Printf("de64: %s\n", (*res).EncData64)
 		*/
 	}
+	return int(ret)
 }
 
 //func main() {
