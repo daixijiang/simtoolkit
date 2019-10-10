@@ -141,16 +141,21 @@ func getServInfo_pv1(portid int) int {
 
 	ret := 403
 	for index := 0; index < OPER_MAX; index++ {
+		res_data = devResPlainData{}
 		req_data = devReqPlainData{
 			Imei:  serial_port[portid].devInfo.sim_src.Imei,
 			Token: serial_port[portid].devInfo.token[index],
 		}
 
 		/* test */
-		if (myProduce.TestFlag == 1) && (index == OPER_CN_TELECOM) {
-			req_data.Imei = "863412049788253"
-			req_data.Token = "YR0NI-259CE-R3JI5-01DJN-ENY2Z"
+		if myProduce.TestFlag == 1 {
+			if index == OPER_CN_MOBILE {
+				req_data.Imei = "867732034973305"
+			} else if index == OPER_CN_TELECOM {
+				req_data.Imei = "863412049788253"
+			}
 		}
+		/* test end */
 
 		if req_data.Token == "" {
 			continue
@@ -199,7 +204,7 @@ func getServInfo_cv1(portid int, version int) int {
 		Imei:   serial_port[portid].devInfo.sim_src.Imei,
 		Chipid: serial_port[portid].devInfo.sim_src.ChipID,
 		Token:  serial_port[portid].devInfo.token[OPER_CN_MOBILE],
-		//TODO? Token of oper
+		//TODO? only Token of CMCC
 	}
 
 	/* test */
@@ -207,8 +212,8 @@ func getServInfo_cv1(portid int, version int) int {
 		req_data.Ver = "CosVer_1.1.4"
 		req_data.Imei = "867732034973305"
 		req_data.Chipid = "3934363531303236320A3A373B3C3A3B"
-		req_data.Token = "WPAFE-7O2T3-SPEX9-DUWBJ"
 	}
+	/* test end */
 
 	reqSimServer(version, req_data, &res)
 	err := json.Unmarshal(res, &res_data)
@@ -249,7 +254,6 @@ func getServInfo_cv3(portid int, version int) int {
 		req_data.Ver = "CosVer_1.1.4"
 		req_data.Imei = "867732034973305"
 		req_data.Chipid = "3934363531303236320A3A373B3C3A3B"
-		req_data.Token[OPER_CN_MOBILE] = "WPAFE-7O2T3-SPEX9-DUWBJ"
 	}
 
 	reqSimServer(version, req_data, &res)
@@ -310,7 +314,8 @@ func setVsimData(portid int) int {
 
 	ret := 0
 
-	if (*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc != nil {
+	if ((*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc != nil) &&
+		(serial_port[portid].devInfo.sim_ens.EncData192 != "") {
 		ret = (*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc(
 			Module_CMD2_SIM192, portid,
 			serial_port[portid].comPort,
@@ -319,7 +324,8 @@ func setVsimData(portid int) int {
 		vlog.Info("    set de192 %s", result)
 	}
 
-	if (*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc != nil {
+	if ((*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc != nil) &&
+		(serial_port[portid].devInfo.sim_ens.EncData64 != "") {
 		ret = (*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc(
 			Module_CMD2_SIM64, portid,
 			serial_port[portid].comPort,
@@ -329,7 +335,8 @@ func setVsimData(portid int) int {
 	}
 
 	if ret == 0 {
-		return 192
+		vlog.Info("    Port[%d]: failed to set sim data on", portid)
+		return 170
 	}
 
 	vlog.Info("Port[%d] p(5.1)=> do producing ok!", portid)

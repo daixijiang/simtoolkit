@@ -56,9 +56,11 @@ func newportGroup() (pg *portGroup) {
 	pg.ComboPorts = ports_list
 
 	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
-		pg.TestCmdEditor[port_id].Flags = nucular.EditSelectable
+		//pg.TestCmdEditor[port_id].Flags = nucular.EditSelectable
+		pg.TestCmdEditor[port_id].Flags |= nucular.EditBox
+		pg.TestCmdEditor[port_id].Flags |= nucular.EditNeverInsertMode
 		pg.TestCmdEditor[port_id].Buffer = []rune("AT")
-		pg.TestCmdEditor[port_id].Maxlen = 64
+		pg.TestCmdEditor[port_id].Maxlen = 128
 	}
 
 	myBtnTab[Btn_CMD_Produce] = BtnDoTable{Btn_CMD_Produce, "produce", serialProduce}
@@ -139,7 +141,7 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 		}
 	}
 
-	if w := w.Menu(label.TA("THEME", "RC"), 150, nil); w != nil {
+	if w := w.Menu(label.TA("Theme", "RC"), 150, nil); w != nil {
 		w.Row(25).Dynamic(1)
 		newtheme := pg.Theme
 		if w.OptionText("Default Theme", newtheme == nstyle.DefaultTheme) {
@@ -164,6 +166,60 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 }
 
 func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
+	w.Row(40).Dynamic(1)
+	if sw := w.GroupBegin("Group Port", nucular.WindowNoScrollbar|nucular.WindowBorder); sw != nil {
+		sw.Row(2).Dynamic(1)
+		sw.Row(26).Static(90, 30, 70, 70, 70, 10, 70, 10, 70, 600)
+		sw.CheckboxText(fmt.Sprintf("Port[%d]: ", portid), &pg.Checkbox[portid])
+
+		if serial_port[portid].strInfo == "" {
+			sw.Label(string("(*)"), "LC")
+		} else {
+			sw.Label(string("("+serial_port[portid].strInfo+")"), "LC")
+		}
+
+		pg.CurrentPortId[portid] = sw.ComboSimple(pg.ComboPorts, pg.CurrentPortId[portid], 20)
+		strCom := COM_RNAME_PREFIX + pg.ComboPorts[pg.CurrentPortId[portid]]
+
+		if sw.Button(label.T("Open"), false) {
+			if serialOpen(portid, strCom) != 0 {
+				msg := fmt.Sprintf("Filed to open the %s!", strCom)
+				pg.openMessage(w, msg)
+			}
+		}
+
+		if sw.Button(label.T("Produce"), false) {
+			if portIsOK(portid) == 0 {
+				msg := fmt.Sprintf("Please open the port[%d]!", portid)
+				pg.openMessage(w, msg)
+			} else {
+				pg.btnProduce(sw, portid, strCom)
+			}
+		}
+
+		sw.Label(string(" "), "LC")
+		if sw.Button(label.T("Close"), false) {
+			serialClose(portid)
+		}
+
+		sw.Label(string(" "), "LC")
+		if sw.Button(label.T("ATsend"), false) {
+			if portIsOK(portid) == 0 {
+				msg := fmt.Sprintf("Please open the port[%d]!", portid)
+				pg.openMessage(w, msg)
+			} else {
+				strCmd := string(pg.TestCmdEditor[portid].Buffer)
+				serialATsendCmd(portid, strCom, strCmd)
+			}
+		}
+
+		pg.TestCmdEditor[portid].Edit(sw)
+
+		sw.GroupEnd()
+	}
+}
+
+func (pg *portGroup) showPortG2(w *nucular.Window, portid int) {
 	w.Row(40).Dynamic(1)
 	if sw := w.GroupBegin("Group Port", nucular.WindowNoScrollbar|nucular.WindowBorder); sw != nil {
 		sw.Row(4).Dynamic(1)
