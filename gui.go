@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"image/color"
 	"os"
-	"sync"
+	//	"sync"
 	"vlog"
 
 	"github.com/aarzilli/nucular"
@@ -45,7 +45,13 @@ type BtnDoTable struct {
 
 var myBtnTab [Btn_CMD_MAX]BtnDoTable
 
-var wg sync.WaitGroup
+//var wg sync.WaitGroup
+
+type PortResult struct {
+	Portid int
+	Oper   int
+	Result int
+}
 
 func newportGroup() (pg *portGroup) {
 	pg = &portGroup{}
@@ -169,8 +175,8 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 	w.Row(40).Dynamic(1)
 	if sw := w.GroupBegin("Group Port", nucular.WindowNoScrollbar|nucular.WindowBorder); sw != nil {
 		sw.Row(2).Dynamic(1)
-		sw.Row(26).Static(90, 30, 70, 70, 70, 10, 70, 10, 70, 600)
-		sw.CheckboxText(fmt.Sprintf("Port[%d]: ", portid), &pg.Checkbox[portid])
+		sw.Row(26).Static(85, 45, 70, 70, 70, 10, 70, 10, 70, 600)
+		sw.CheckboxText(fmt.Sprintf("Port[%d]:", portid), &pg.Checkbox[portid])
 
 		if serial_port[portid].strInfo == "" {
 			sw.Label(string("(*)"), "LC")
@@ -219,57 +225,6 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 	}
 }
 
-func (pg *portGroup) showPortG2(w *nucular.Window, portid int) {
-	w.Row(40).Dynamic(1)
-	if sw := w.GroupBegin("Group Port", nucular.WindowNoScrollbar|nucular.WindowBorder); sw != nil {
-		sw.Row(4).Dynamic(1)
-		sw.Row(25).Static(90, 30, 70, 70, 135, 70, 70, 70)
-		sw.CheckboxText(fmt.Sprintf("Port[%d]: ", portid), &pg.Checkbox[portid])
-
-		if serial_port[portid].strInfo == "" {
-			sw.Label(string("(*)"), "LC")
-		} else {
-			sw.Label(string("("+serial_port[portid].strInfo+")"), "LC")
-		}
-
-		pg.CurrentPortId[portid] = sw.ComboSimple(pg.ComboPorts, pg.CurrentPortId[portid], 25)
-		strCom := COM_RNAME_PREFIX + pg.ComboPorts[pg.CurrentPortId[portid]]
-
-		if sw.Button(label.T("Open"), false) {
-			if serialOpen(portid, strCom) != 0 {
-				msg := fmt.Sprintf("Filed to open the %s!", strCom)
-				pg.openMessage(w, msg)
-			}
-		}
-
-		pg.TestCmdEditor[portid].Edit(sw)
-		strCmd := string(pg.TestCmdEditor[portid].Buffer)
-		if sw.Button(label.T("ATsend"), false) {
-			if portIsOK(portid) == 0 {
-				msg := fmt.Sprintf("Please open the port[%d]!", portid)
-				pg.openMessage(w, msg)
-			} else {
-				serialATsendCmd(portid, strCom, strCmd)
-			}
-		}
-
-		if sw.Button(label.T("Produce"), false) {
-			if portIsOK(portid) == 0 {
-				msg := fmt.Sprintf("Please open the port[%d]!", portid)
-				pg.openMessage(w, msg)
-			} else {
-				pg.btnProduce(sw, portid, strCom)
-			}
-		}
-
-		if sw.Button(label.T("Close"), false) {
-			serialClose(portid)
-		}
-
-		sw.GroupEnd()
-	}
-}
-
 func (pg *portGroup) openMessage(w *nucular.Window, message string) {
 	var wf nucular.WindowFlags
 	wf |= nucular.WindowBorder
@@ -300,12 +255,14 @@ func (pg *portGroup) btnProduce(w *nucular.Window, portid int, strCom string) {
 
 		if serial_port[portid].port_status != PORT_STATUS_PRODUCE {
 			serial_port[portid].port_status = PORT_STATUS_PRODUCE
-			wg.Add(1)
-			go pg.taskBtnHandle(Btn_CMD_Produce, portid)
-			wg.Wait()
+			//wg.Add(1)
+			taskPA := make(chan PortResult)
+			go pg.taskBtnHandle(Btn_CMD_Produce, portid, taskPA)
+			pg.handleResult(taskPA)
+			//wg.Wait()
 		}
 		serial_port[portid].port_status = PORT_STATUS_OPEN
-		serial_port[portid].strInfo = fmt.Sprintf("%s", "P")
+		//serial_port[portid].strInfo = fmt.Sprintf("%s", "P")
 	}
 }
 
@@ -337,16 +294,38 @@ func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int, check bool) {
 	vlog.Info("start %s all", myBtnTab[oper].BtnStr)
 	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
 		if (pg.Checkbox[port_id] || !check) && (portIsOK(port_id) != 0) {
-			wg.Add(1)
-			go pg.taskBtnHandle(oper, port_id)
+			///wg.Add(1)
+			taskPA := make(chan PortResult)
+			go pg.taskBtnHandle(oper, port_id, taskPA)
+			pg.handleResult(taskPA)
 		}
 	}
-	wg.Wait()
+	///wg.Wait()
 }
 
-func (pg *portGroup) taskBtnHandle(oper int, portid int) {
-	myBtnTab[oper].BtnFunc(portid)
-	wg.Done()
+func (pg *portGroup) taskBtnHandle(oper int, portid int, taskCH chan PortResult) {
+	ret := myBtnTab[oper].BtnFunc(portid)
+	///wg.Done()
+	resp := PortResult{
+		Portid: portid,
+		Oper:   oper,
+		Result: ret,
+	}
+	vlog.Info("Handle-Put result[%d] of port[%d]: %d", resp.Oper, resp.Portid, resp.Result)
+	taskCH <- resp
+}
+
+func (pg *portGroup) handleResult(taskCH chan PortResult) {
+	resp := <-taskCH
+	vlog.Info("Handle-Get result[%d] of port[%d]: %d", resp.Oper, resp.Portid, resp.Result)
+
+	if (resp.Oper == Btn_CMD_Produce) || (resp.Oper == Btn_CMD_CheckDo) {
+		if resp.Result == 0 {
+			serial_port[resp.Portid].strInfo = "ok"
+		} else {
+			serial_port[resp.Portid].strInfo = "err"
+		}
+	}
 }
 
 func (pg *portGroup) btnLoadToken(w *nucular.Window) {
