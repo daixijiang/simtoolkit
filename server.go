@@ -15,41 +15,39 @@ import (
 
 const (
 	SERVER_PLAIN_v0  = 0
-	SERVER_Cipher_v1 = 1
-	SERVER_Cipher_v2 = 2
+	SERVER_Cipher    = 1
+	SERVER_Cipher_v1 = 2
 	SERVER_Cipher_v3 = 3
-	SERVER_Cipher_v4 = 4
-	SERVER_MAX       = 5
+	SERVER_MAX       = 4
 )
 
 // plaintext
 const serverPlainUrl string = "https://rdp.showmac.cn/api/v1/profile/clear/get"
 
 // ciphertext
+const serverCipherUrl string = "https://ldp.showmac.cn/api/openluat/profile"
 const serverCipherUrlV1 string = "https://rdp.showmac.cn/api/v1/profile/get"
-const serverCipherUrlV2 string = "https://rdp.showmac.cn/api/v2/profile/get"
 const serverCipherUrlV3 string = "https://rdp.showmac.cn/api/v3/profile/get"
-const serverCipherUrlV4 string = "https://rdp.showmac.cn/api/v4/profile/get"
 
 var serverUrl = [SERVER_MAX]string{
 	serverPlainUrl,
+	serverCipherUrl,
 	serverCipherUrlV1,
-	serverCipherUrlV2,
 	serverCipherUrlV3,
-	serverCipherUrlV4,
 }
 
-type devReqData struct {
+type devReqCipherDataV1 struct {
 	Ver    string `json:"version"`
 	Imei   string `json:"imei"`
 	Chipid string `json:"chipid"`
 	Token  string `json:"token"`
 }
 
-type devReqCipherData struct {
-	Imei   string `json:"imei"`
-	Chipid string `json:"chipid"`
-	Token  string `json:"token"`
+type devReqCipherDataV3 struct {
+	Ver    string   `json:"version"`
+	Imei   string   `json:"imei"`
+	Chipid string   `json:"chipid"`
+	Token  []string `json:"token"`
 }
 
 type devResCipherData struct {
@@ -70,6 +68,7 @@ type devResPlainData struct {
 	Iccid   string `json:"iccid"`
 	Ki      string `json:"ki"`
 	Opc     string `json:"opc"`
+	Imsi    string `json:"imsi"`
 	ImsiLTE string `json:"imsiLTE"`
 	ImsiM   string `json:"imsiM"`
 	Uimid   string `json:"uimID"`

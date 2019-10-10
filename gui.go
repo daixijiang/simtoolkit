@@ -19,6 +19,7 @@ import (
 
 type portGroup struct {
 	Theme         nstyle.Theme
+	Module        Module_cfg
 	Message       string
 	Checkbox      [SERAIL_PORT_MAX]bool
 	TestCmdEditor [SERAIL_PORT_MAX]nucular.TextEditor
@@ -51,6 +52,7 @@ func newportGroup() (pg *portGroup) {
 
 	pg.Message = ""
 	pg.Theme = mytheme
+	pg.Module = SIM800C
 	pg.ComboPorts = ports_list
 
 	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
@@ -103,24 +105,58 @@ func (pg *portGroup) showUI(w *nucular.Window) {
 }
 
 func (pg *portGroup) showMenuBar(w *nucular.Window) {
-	w.Row(25).Static(450, 150)
+	w.Row(25).Static(400, 100, 100)
 	clryellow := color.RGBA{0xff, 0xff, 0x00, 0xff}
 	w.LabelColored(fmt.Sprintf("** %s  (%s) **", szBanner, szVersion), "CC", clryellow)
 
 	w.MenubarBegin()
 	if w := w.Menu(label.TA("Module", "RC"), 150, nil); w != nil {
 		w.Row(25).Dynamic(1)
-		curMod := myProduce.Mod
-		if w.OptionText("EC20", myProduce.Mod == &modEC20) {
-			myProduce.Mod = &modEC20
-			myProduce.UrlVer = SERVER_PLAIN_v0
+		newmodule := pg.Module
+		if w.OptionText("EC20", newmodule == EC20) {
+			newmodule = EC20
 		}
-		if w.OptionText("SIM800C", myProduce.Mod == &modSIM800C) {
-			myProduce.Mod = &modSIM800C
-			myProduce.UrlVer = SERVER_Cipher_v1
+		if w.OptionText("SIM800C", newmodule == SIM800C) {
+			newmodule = SIM800C
 		}
-		if curMod != myProduce.Mod {
+
+		if MODULE_TEST {
+			if w.OptionText("EC20_PT", newmodule == EC20_PT) {
+				newmodule = EC20_PT
+			}
+			if w.OptionText("EC20_CT1", newmodule == EC20_CT1) {
+				newmodule = EC20_CT1
+			}
+			if w.OptionText("EC20_CT3", newmodule == EC20_CT3) {
+				newmodule = EC20_CT3
+			}
+		}
+
+		if newmodule != pg.Module {
 			pg.btnHandleAll(w, Btn_CMD_Close, false)
+			pg.Module = newmodule
+			module_reinit(pg.Module)
+		}
+	}
+
+	if w := w.Menu(label.TA("THEME", "RC"), 150, nil); w != nil {
+		w.Row(25).Dynamic(1)
+		newtheme := pg.Theme
+		if w.OptionText("Default Theme", newtheme == nstyle.DefaultTheme) {
+			newtheme = nstyle.DefaultTheme
+		}
+		if w.OptionText("White Theme", newtheme == nstyle.WhiteTheme) {
+			newtheme = nstyle.WhiteTheme
+		}
+		if w.OptionText("Red Theme", newtheme == nstyle.RedTheme) {
+			newtheme = nstyle.RedTheme
+		}
+		if w.OptionText("Dark Theme", newtheme == nstyle.DarkTheme) {
+			newtheme = nstyle.DarkTheme
+		}
+		if newtheme != pg.Theme {
+			pg.Theme = newtheme
+			w.Master().SetStyle(nstyle.FromTheme(pg.Theme, w.Master().Style().Scaling))
 		}
 	}
 
@@ -140,10 +176,6 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 			sw.Label(string("("+serial_port[portid].strInfo+")"), "LC")
 		}
 
-		if portid >= SERAIL_PORT_MAX {
-			vlog.Info("showPortG %d", portid)
-			return
-		}
 		pg.CurrentPortId[portid] = sw.ComboSimple(pg.ComboPorts, pg.CurrentPortId[portid], 25)
 		strCom := COM_RNAME_PREFIX + pg.ComboPorts[pg.CurrentPortId[portid]]
 
@@ -238,12 +270,12 @@ func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int, check bool) {
 
 		if cntCheck == 0 {
 			pg.openMessage(w, "Please select(open) the ports!")
+			return
 		} else if check && (portlist != "") {
 			msg := fmt.Sprintf("Please select(open) the ports: [%s]!", portlist)
 			pg.openMessage(w, msg)
+			return
 		}
-
-		return
 	}
 
 	vlog.Info("start %s all", myBtnTab[oper].BtnStr)
@@ -262,7 +294,9 @@ func (pg *portGroup) taskBtnHandle(oper int, portid int) {
 }
 
 func (pg *portGroup) btnLoadToken(w *nucular.Window) {
-	loadTokenCfg("./token.cfg")
+	loadTokenCfg(TOKEN_FILE_CMCC, OPER_CN_MOBILE)
+	loadTokenCfg(TOKEN_FILE_UNI, OPER_CN_UNICOM)
+	loadTokenCfg(TOKEN_FILE_TEL, OPER_CN_TELECOM)
 }
 
 func (pg *portGroup) btnRefreshPort(w *nucular.Window) {

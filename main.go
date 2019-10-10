@@ -32,5 +32,5 @@ func main() {
 }
 
 func logInit() {
-	vlog.InitLog("file", "vsimtoolkit.log", "Debug", 7)
+	vlog.InitLog("file", "vsimtoolkit.log", "info", 7)
 }

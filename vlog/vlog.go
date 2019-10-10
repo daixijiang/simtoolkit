@@ -21,6 +21,7 @@ import (
 )
 
 var Log *logs.BeeLogger
+var ConsoleLogLevel int =4
 
 func init() {
 	Log = logs.NewLogger(200)
@@ -61,33 +62,44 @@ func SetLogLevel(logLevel string) {
 		level = 4
 	}
 	Log.SetLevel(level)
+	ConsoleLogLevel = level
 }
 
 // wrap log
 
 func Error(format string, v ...interface{}) {
 	Log.Error(format, v...)
-	fmt.Printf(format+"\n", v...)
+	if (ConsoleLogLevel >= 3 ) {
+		fmt.Printf(format+"\n", v...)
+	}
 }
 
 func Warn(format string, v ...interface{}) {
 	Log.Warn(format, v...)
-	fmt.Printf(format+"\n", v...)
+	if (ConsoleLogLevel >= 4 ) {
+		fmt.Printf(format+"\n", v...)
+	}
 }
 
 func Info(format string, v ...interface{}) {
 	Log.Info(format, v...)
-	fmt.Printf(format+"\n", v...)
+	if (ConsoleLogLevel >= 6 ) {
+		fmt.Printf(format+"\n", v...)
+	}
 }
 
 func Debug(format string, v ...interface{}) {
 	Log.Debug(format, v...)
-	fmt.Printf(format+"\n", v...)
+	if (ConsoleLogLevel >= 7 ) {
+		fmt.Printf(format+"\n", v...)
+	}
 }
 
 func Trace(format string, v ...interface{}) {
 	Log.Trace(format, v...)
-	fmt.Printf(format+"\n", v...)
+	if (ConsoleLogLevel >= 8 ) {
+		fmt.Printf(format+"\n", v...)
+	}
 }
 
 // Logger

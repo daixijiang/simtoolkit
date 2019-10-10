@@ -235,10 +235,10 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
 	// C Call dll/so
 	///ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
 	ret := C.vsim_encrypt(&srcSim, &encSim)
-	vlog.Info("    Lib_vsim_encrypt: %d\n", int32(ret))
+	vlog.Info("    Lib_vsim_encrypt: %d", int32(ret))
 	if ret == 0 {
-		var ens_ascii_192 [ENC_DATA_192*2 + 1]byte
-		var ens_ascii_64 [ENC_DATA_64*2 + 1]byte
+		var ens_ascii_192 [ENC_DATA_192 * 2]byte
+		var ens_ascii_64 [ENC_DATA_64 * 2]byte
 
 		/* hex to ascii */
 		for index := 0; index < ENC_DATA_192; index++ {
@@ -275,18 +275,18 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
 		(*res).EncData64 = string(ens_ascii_64[:])
 
 		/*
-			fmt.Printf("imei: %s\n", C.GoString(&srcSim.imei[0]))
-			fmt.Printf("chipID: %s\n", C.GoString(&srcSim.chipID[0]))
-			fmt.Printf("imsi_m: %s\n", C.GoString(&srcSim.cdmaData.imsi_m[0]))
-			fmt.Printf("uim_id: %s\n", C.GoString(&srcSim.cdmaData.uim_id[0]))
-			fmt.Printf("hrdupp: %s\n", C.GoString(&srcSim.cdmaData.hrdupp[0]))
-			fmt.Printf("iccid: %s\n", C.GoString(&srcSim.vsimData[0].iccid[0]))
-			fmt.Printf("imsi: %s\n", C.GoString(&srcSim.vsimData[0].imsi[0]))
-			fmt.Printf("ki: %s\n", C.GoString(&srcSim.vsimData[0].ki[0]))
-			fmt.Printf("opc: %s\n", C.GoString(&srcSim.vsimData[0].opc[0]))
+			vlog.Debug("imei: %s", C.GoString(&srcSim.imei[0]))
+			vlog.Debug("chipID: %s", C.GoString(&srcSim.chipID[0]))
+			vlog.Debug("imsi_m: %s", C.GoString(&srcSim.cdmaData.imsi_m[0]))
+			vlog.Debug("uim_id: %s", C.GoString(&srcSim.cdmaData.uim_id[0]))
+			vlog.Debug("hrdupp: %s", C.GoString(&srcSim.cdmaData.hrdupp[0]))
+			vlog.Debug("iccid: %s", C.GoString(&srcSim.vsimData[0].iccid[0]))
+			vlog.Debug("imsi: %s", C.GoString(&srcSim.vsimData[0].imsi[0]))
+			vlog.Debug("ki: %s", C.GoString(&srcSim.vsimData[0].ki[0]))
+			vlog.Debug("opc: %s", C.GoString(&srcSim.vsimData[0].opc[0]))
 
-			fmt.Printf("de192: %s\n", (*res).EncData192)
-			fmt.Printf("de64: %s\n", (*res).EncData64)
+			vlog.Debug("de192: %s", (*res).EncData192)
+			vlog.Debug("de64: %s", (*res).EncData64)
 		*/
 	}
 	return int(ret)

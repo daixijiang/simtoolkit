@@ -178,11 +178,12 @@ func ec20_get_chipid(cmdid int, portid int, s *serial.Port, reply *string) int {
 	return 0
 }
 
-/* "AT+CSIM=426,"A0D60000D002FD5646696C6531312E62696E000000...."\r\r\n
+/* "AT+CSIM=426,"A0D60000D002FD5646696C6531312E62696E000000...."\r\r\n\
+ * +CSIM: 4,"9000"\r\n\r\n
  * OK\r\n"
  */
 func ec20_set_ens192(cmdid int, portid int, s *serial.Port, reply *string) int {
-	cmd_ens192 := fmt.Sprintf("AT+CSIM=426,\"%s%s\"", head_ens192, serial_port[portid].sim_ens.EncData192)
+	cmd_ens192 := fmt.Sprintf("AT+CSIM=426,\"%s%s\"", head_ens192, serial_port[portid].devInfo.sim_ens.EncData192)
 	resp := serialWriteAndEcho(portid, s, cmd_ens192)
 	rs := []byte(resp)
 	length := len(rs)
@@ -192,21 +193,27 @@ func ec20_set_ens192(cmdid int, portid int, s *serial.Port, reply *string) int {
 	pos1 := strings.Index(resp, cmd_ens192+"\r\r\n")
 	pos2 := strings.Index(resp, "\r\n\r\nOK")
 	if pos1 >= 0 && pos2 >= 0 {
-		preresp := string(rs[(sublen + len("\r\r\n") + len("+CSIM:\"")) : pos2-1])
+		preresp := string(rs[(sublen + len("\r\r\n") + len("+CSIM: 4,\"")) : pos2-1])
 		vlog.Info("    AT get(%d): %s", len(preresp), preresp)
-		*reply = preresp
-		return len(preresp)
+		if preresp == "9000" {
+			*reply = "OK"
+			return len("OK")
+		} else {
+			*reply = "ERROR"
+			return 0
+		}
 	}
 
 	*reply = "ERROR"
 	return 0
 }
 
-/* "AT+CSIM=170,\"A0D600015002FD5646696C6531312E62696E000000...\x00\"\r\r\n
- * ERROR\r\n"
+/* "AT+CSIM=170,\"A0D600015002FD5646696C6531312E62696E000000..."\r\r\n\
+ * +CSIM: 4,"9000"\r\n\r\n
+ * OK\r\n"
  */
 func ec20_set_ens64(cmdid int, portid int, s *serial.Port, reply *string) int {
-	cmd_ens64 := fmt.Sprintf("AT+CSIM=170,\"%s%s\"", head_ens64, serial_port[portid].sim_ens.EncData64)
+	cmd_ens64 := fmt.Sprintf("AT+CSIM=170,\"%s%s\"", head_ens64, serial_port[portid].devInfo.sim_ens.EncData64)
 	resp := serialWriteAndEcho(portid, s, cmd_ens64)
 	rs := []byte(resp)
 	length := len(rs)
@@ -216,10 +223,15 @@ func ec20_set_ens64(cmdid int, portid int, s *serial.Port, reply *string) int {
 	pos1 := strings.Index(resp, cmd_ens64+"\r\r\n")
 	pos2 := strings.Index(resp, "\r\n\r\nOK")
 	if pos1 >= 0 && pos2 >= 0 {
-		preresp := string(rs[(sublen + len("\r\r\n") + len("+CSIM:\"")) : pos2-1])
+		preresp := string(rs[(sublen + len("\r\r\n") + len("+CSIM: 4,\"")) : pos2-1])
 		vlog.Info("    AT get(%d): %s", len(preresp), preresp)
-		*reply = preresp
-		return len(preresp)
+		if preresp == "9000" {
+			*reply = "OK"
+			return len("OK")
+		} else {
+			*reply = "ERROR"
+			return 0
+		}
 	}
 
 	*reply = "ERROR"

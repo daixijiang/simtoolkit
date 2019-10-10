@@ -31,13 +31,18 @@ const (
 
 type serial_port_info struct {
 	port_status int
+	comPort     *serial.Port
 	portname    string
 	strInfo     string
-	comPort     *serial.Port
-	dev_data    devReqData
-	sim_pv1     devResPlainData
-	sim_cv1     devResCipherData
-	sim_ens     ENC_SIM_DATA
+	devInfo     device_info
+}
+
+type device_info struct {
+	version string
+	token   [OPER_MAX]string
+	sim_src SRC_SIM_DATA
+	sim_ens ENC_SIM_DATA
+	servde  string
 }
 
 var serial_port [SERAIL_PORT_MAX]serial_port_info
@@ -86,8 +91,8 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string) string {
 		}
 	}
 
-	//vlog.Info("[Req]%s", strCmd)
-	//vlog.Info("[Rly]%s", at_reply[portid])
+	vlog.Debug("[Req]%s", strCmd)
+	vlog.Debug("[Rly]%s", at_reply[portid])
 	return at_reply[portid]
 }
 
@@ -111,6 +116,7 @@ func serialOpen(portid int, strCom string) int {
 	serial_port[portid].port_status = PORT_STATUS_OPEN
 	serial_port[portid].comPort = s
 	serial_port[portid].strInfo = fmt.Sprintf("%s", "o")
+	serial_port[portid].devInfo = device_info{}
 	return 0
 }
 
