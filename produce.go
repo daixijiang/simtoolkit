@@ -6,7 +6,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 	"vlog"
 )
@@ -130,7 +129,6 @@ func getServInfo(portid int) int {
 		ret = getServInfo_cv3(portid, SERVER_Cipher_v3)
 	}
 
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "S")
 	return ret
 }
 
@@ -186,8 +184,6 @@ func getServInfo_pv1(portid int) int {
 		}
 	}
 
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "S")
-
 	if ret != 200 {
 		return 403
 	}
@@ -222,7 +218,6 @@ func getServInfo_cv1(portid int, version int) int {
 	}
 
 	vlog.Info("    Get siminfo(%d): %+v", res_data.Status, res_data)
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "S")
 
 	if res_data.Status == 200 {
 		serial_port[portid].devInfo.servde = res_data.De
@@ -263,7 +258,6 @@ func getServInfo_cv3(portid int, version int) int {
 	}
 
 	vlog.Info("    Get siminfo(%d): %+v", res_data.Status, res_data)
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "S")
 
 	if res_data.Status == 200 {
 		serial_port[portid].devInfo.servde = res_data.De

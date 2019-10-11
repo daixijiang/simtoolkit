@@ -182,7 +182,7 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 
 		if serial_port[portid].strInfo == "" {
 			sw.Label(string("(*)"), "LC")
-		} else if serial_port[portid].strInfo == "ER" {
+		} else if serial_port[portid].strInfo == "XXX" {
 			sw.LabelColored(fmt.Sprintf("(%s)", serial_port[portid].strInfo), "LC", clrred)
 		} else {
 			sw.LabelColored(fmt.Sprintf("(%s)", serial_port[portid].strInfo), "LC", clrgreen)
@@ -327,7 +327,6 @@ func (pg *portGroup) setTaskBtn(oper int, portid int, taskCH chan PortResult) {
 }
 
 func (pg *portGroup) getTaskBtn(count int, taskCH chan PortResult) {
-	//for resp := range taskCH {
 	for i := 0; i < count; i++ {
 		resp := <-taskCH
 		vlog.Info("Handle-Get result of %s port[%d]: %d", myBtnTab[resp.Oper].BtnStr, resp.Portid, resp.Result)
@@ -335,10 +334,11 @@ func (pg *portGroup) getTaskBtn(count int, taskCH chan PortResult) {
 			if resp.Result == 0 {
 				serial_port[resp.Portid].strInfo = "OK"
 			} else {
-				serial_port[resp.Portid].strInfo = "ER"
+				serial_port[resp.Portid].strInfo = "XXX"
 			}
 		}
 	}
+	close(taskCH)
 }
 
 func (pg *portGroup) checkBox(w *nucular.Window) bool {

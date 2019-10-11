@@ -100,6 +100,7 @@ func serialOpen(portid int, strCom string) int {
 	vlog.Info("Port[%d] => open port %s", portid, strCom)
 
 	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
+		serial_port[portid].strInfo = fmt.Sprintf("%s", "o")
 		return 0
 	}
 	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: 100}
@@ -124,8 +125,6 @@ func serialATsendCmd(portid int, strCom string, strCmd string) {
 	vlog.Info("Port[%d] => AT send cmd[%s] port %s", portid, strCmd, strCom)
 	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd)
 	vlog.Info("%s", resp)
-
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "T")
 }
 
 func serialClose(portid int) int {
