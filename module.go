@@ -50,7 +50,7 @@ const (
 	EC20_CT3
 )
 
-const MODULE_TEST = false
+const MODULE_TEST = true
 
 type cmdHandler func(cmdid int, portid int, s *serial.Port, reply *string) int
 
