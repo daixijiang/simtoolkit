@@ -135,7 +135,7 @@ func serialClose(portid int) int {
 		serial_port[portid].port_status = PORT_STATUS_CLOSE
 		serial_port[portid] = serial_port_info{}
 	}
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "*")
+	serial_port[portid].strInfo = fmt.Sprintf("%s", "")
 	return 0
 }
 

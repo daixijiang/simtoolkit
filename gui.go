@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"image/color"
 	"os"
-	//	"sync"
 	"vlog"
 
 	"github.com/aarzilli/nucular"
@@ -45,13 +44,14 @@ type BtnDoTable struct {
 
 var myBtnTab [Btn_CMD_MAX]BtnDoTable
 
-//var wg sync.WaitGroup
-
 type PortResult struct {
 	Portid int
 	Oper   int
 	Result int
 }
+
+//////////////////////////////////////////////////////////////////////////////////
+// show handle
 
 func newportGroup() (pg *portGroup) {
 	pg = &portGroup{}
@@ -108,7 +108,7 @@ func (pg *portGroup) showUI(w *nucular.Window) {
 	}
 
 	if w.Button(label.T("Quit"), false) {
-		os.Exit(1)
+		pg.btnExit(w)
 	}
 }
 
@@ -141,9 +141,8 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 		}
 
 		if newmodule != pg.Module {
-			pg.btnHandleAll(w, Btn_CMD_Close, false)
 			pg.Module = newmodule
-			module_reinit(pg.Module)
+			pg.setModule(w, newmodule)
 		}
 	}
 
@@ -173,6 +172,9 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 
 func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 	w.Row(40).Dynamic(1)
+	clrred := color.RGBA{0xff, 0x00, 0x00, 0xff}
+	clrgreen := color.RGBA{0x00, 0xff, 0x00, 0xff}
+
 	if sw := w.GroupBegin("Group Port", nucular.WindowNoScrollbar|nucular.WindowBorder); sw != nil {
 		sw.Row(2).Dynamic(1)
 		sw.Row(26).Static(85, 45, 70, 70, 70, 10, 70, 10, 70, 600)
@@ -180,43 +182,31 @@ func (pg *portGroup) showPortG(w *nucular.Window, portid int) {
 
 		if serial_port[portid].strInfo == "" {
 			sw.Label(string("(*)"), "LC")
+		} else if serial_port[portid].strInfo == "ER" {
+			sw.LabelColored(fmt.Sprintf("(%s)", serial_port[portid].strInfo), "LC", clrred)
 		} else {
-			sw.Label(string("("+serial_port[portid].strInfo+")"), "LC")
+			sw.LabelColored(fmt.Sprintf("(%s)", serial_port[portid].strInfo), "LC", clrgreen)
 		}
 
 		pg.CurrentPortId[portid] = sw.ComboSimple(pg.ComboPorts, pg.CurrentPortId[portid], 20)
 		strCom := COM_RNAME_PREFIX + pg.ComboPorts[pg.CurrentPortId[portid]]
 
 		if sw.Button(label.T("Open"), false) {
-			if serialOpen(portid, strCom) != 0 {
-				msg := fmt.Sprintf("Filed to open the %s!", strCom)
-				pg.openMessage(w, msg)
-			}
+			pg.btnOpen(sw, portid, strCom)
 		}
 
 		if sw.Button(label.T("Produce"), false) {
-			if portIsOK(portid) == 0 {
-				msg := fmt.Sprintf("Please open the port[%d]!", portid)
-				pg.openMessage(w, msg)
-			} else {
-				pg.btnProduce(sw, portid, strCom)
-			}
+			pg.btnProduce(sw, portid, strCom)
 		}
 
 		sw.Label(string(" "), "LC")
 		if sw.Button(label.T("Close"), false) {
-			serialClose(portid)
+			pg.btnClose(sw, portid, strCom)
 		}
 
 		sw.Label(string(" "), "LC")
 		if sw.Button(label.T("ATsend"), false) {
-			if portIsOK(portid) == 0 {
-				msg := fmt.Sprintf("Please open the port[%d]!", portid)
-				pg.openMessage(w, msg)
-			} else {
-				strCmd := string(pg.TestCmdEditor[portid].Buffer)
-				serialATsendCmd(portid, strCom, strCmd)
-			}
+			pg.btnATSend(sw, portid, strCom)
 		}
 
 		pg.TestCmdEditor[portid].Edit(sw)
@@ -246,6 +236,30 @@ func (pg *portGroup) openMessageBox(w *nucular.Window) {
 	}
 }
 
+//////////////////////////////////////////////////////////////////////////////////
+// btn handle
+
+func (pg *portGroup) btnOpen(w *nucular.Window, portid int, strCom string) {
+	if serialOpen(portid, strCom) != 0 {
+		msg := fmt.Sprintf("Filed to open the %s!", strCom)
+		pg.openMessage(w, msg)
+	}
+}
+
+func (pg *portGroup) btnClose(w *nucular.Window, portid int, strCom string) {
+	serialClose(portid)
+}
+
+func (pg *portGroup) btnATSend(w *nucular.Window, portid int, strCom string) {
+	if portIsOK(portid) == 0 {
+		msg := fmt.Sprintf("Please open the port[%d]!", portid)
+		pg.openMessage(w, msg)
+	} else {
+		strCmd := string(pg.TestCmdEditor[portid].Buffer)
+		serialATsendCmd(portid, strCom, strCmd)
+	}
+}
+
 func (pg *portGroup) btnProduce(w *nucular.Window, portid int, strCom string) {
 	if portIsOK(portid) == 0 {
 		msg := fmt.Sprintf("Please open the port[%d]!", portid)
@@ -255,77 +269,33 @@ func (pg *portGroup) btnProduce(w *nucular.Window, portid int, strCom string) {
 
 		if serial_port[portid].port_status != PORT_STATUS_PRODUCE {
 			serial_port[portid].port_status = PORT_STATUS_PRODUCE
-			//wg.Add(1)
-			taskPA := make(chan PortResult)
-			go pg.taskBtnHandle(Btn_CMD_Produce, portid, taskPA)
-			pg.handleResult(taskPA)
-			//wg.Wait()
+			taskChan := make(chan PortResult)
+			go pg.setTaskBtn(Btn_CMD_Produce, portid, taskChan)
+			pg.getTaskBtn(1, taskChan)
 		}
 		serial_port[portid].port_status = PORT_STATUS_OPEN
-		//serial_port[portid].strInfo = fmt.Sprintf("%s", "P")
 	}
 }
 
 func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int, check bool) {
-	if check {
-		cntCheck := 0
-		portlist := ""
-
-		for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
-			if pg.Checkbox[port_id] {
-				cntCheck++
-				if portIsOK(port_id) == 0 {
-					portlist += fmt.Sprintf("%d,", port_id)
-				}
-			}
-		}
-		vlog.Info("Check port(%d): %s", cntCheck, portlist)
-
-		if cntCheck == 0 {
-			pg.openMessage(w, "Please select(open) the ports!")
-			return
-		} else if check && (portlist != "") {
-			msg := fmt.Sprintf("Please select(open) the ports: [%s]!", portlist)
-			pg.openMessage(w, msg)
-			return
-		}
+	if check && (pg.checkBox(w) == false) {
+		return
 	}
 
 	vlog.Info("start %s all", myBtnTab[oper].BtnStr)
+	taskChan := make(chan PortResult)
+	taskCnt := 0
 	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
 		if (pg.Checkbox[port_id] || !check) && (portIsOK(port_id) != 0) {
-			///wg.Add(1)
-			taskPA := make(chan PortResult)
-			go pg.taskBtnHandle(oper, port_id, taskPA)
-			pg.handleResult(taskPA)
+			taskCnt++
+			go pg.setTaskBtn(oper, port_id, taskChan)
 		}
 	}
-	///wg.Wait()
+	pg.getTaskBtn(taskCnt, taskChan)
 }
 
-func (pg *portGroup) taskBtnHandle(oper int, portid int, taskCH chan PortResult) {
-	ret := myBtnTab[oper].BtnFunc(portid)
-	///wg.Done()
-	resp := PortResult{
-		Portid: portid,
-		Oper:   oper,
-		Result: ret,
-	}
-	vlog.Info("Handle-Put result[%d] of port[%d]: %d", resp.Oper, resp.Portid, resp.Result)
-	taskCH <- resp
-}
-
-func (pg *portGroup) handleResult(taskCH chan PortResult) {
-	resp := <-taskCH
-	vlog.Info("Handle-Get result[%d] of port[%d]: %d", resp.Oper, resp.Portid, resp.Result)
-
-	if (resp.Oper == Btn_CMD_Produce) || (resp.Oper == Btn_CMD_CheckDo) {
-		if resp.Result == 0 {
-			serial_port[resp.Portid].strInfo = "ok"
-		} else {
-			serial_port[resp.Portid].strInfo = "err"
-		}
-	}
+func (pg *portGroup) btnExit(w *nucular.Window) {
+	os.Exit(1)
 }
 
 func (pg *portGroup) btnLoadToken(w *nucular.Window) {
@@ -339,4 +309,66 @@ func (pg *portGroup) btnRefreshPort(w *nucular.Window) {
 	ports_list = serialList()
 	pg.ComboPorts = ports_list
 	vlog.Info("Portlists: %v", ports_list)
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+// other handle
+
+func (pg *portGroup) setTaskBtn(oper int, portid int, taskCH chan PortResult) {
+	ret := myBtnTab[oper].BtnFunc(portid)
+	///wg.Done()
+	resp := PortResult{
+		Portid: portid,
+		Oper:   oper,
+		Result: ret,
+	}
+	vlog.Info("Handle-Put result of %s port[%d]: %d", myBtnTab[resp.Oper].BtnStr, resp.Portid, resp.Result)
+	taskCH <- resp
+}
+
+func (pg *portGroup) getTaskBtn(count int, taskCH chan PortResult) {
+	//for resp := range taskCH {
+	for i := 0; i < count; i++ {
+		resp := <-taskCH
+		vlog.Info("Handle-Get result of %s port[%d]: %d", myBtnTab[resp.Oper].BtnStr, resp.Portid, resp.Result)
+		if (resp.Oper == Btn_CMD_Produce) || (resp.Oper == Btn_CMD_CheckDo) {
+			if resp.Result == 0 {
+				serial_port[resp.Portid].strInfo = "OK"
+			} else {
+				serial_port[resp.Portid].strInfo = "ER"
+			}
+		}
+	}
+}
+
+func (pg *portGroup) checkBox(w *nucular.Window) bool {
+	cntCheck := 0
+	portlist := ""
+
+	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
+		if pg.Checkbox[port_id] {
+			cntCheck++
+			if portIsOK(port_id) == 0 {
+				portlist += fmt.Sprintf("%d,", port_id)
+			}
+		}
+	}
+
+	vlog.Info("Check port(%d): %s", cntCheck, portlist)
+
+	if cntCheck == 0 {
+		pg.openMessage(w, "Please select(open) the ports!")
+		return false
+	} else if portlist != "" {
+		msg := fmt.Sprintf("Please select(open) the ports: [%s]!", portlist)
+		pg.openMessage(w, msg)
+		return false
+	}
+
+	return true
+}
+
+func (pg *portGroup) setModule(w *nucular.Window, module Module_cfg) {
+	pg.btnHandleAll(w, Btn_CMD_Close, false)
+	module_reinit(pg.Module)
 }
