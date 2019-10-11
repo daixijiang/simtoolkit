@@ -187,9 +187,6 @@ func Ascii2Hex(src_ascii []byte) []byte {
 }
 
 func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
-	///lib := syscall.NewLazyDLL("simcrypt.dll")
-	///vsim_encrypt := lib.NewProc("processProfileData")
-
 	// C struct set and transform
 	var srcSim C.SRC_SIM_DATA
 	var encSim C.ENC_SIM_DATA
@@ -233,10 +230,10 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
 	}
 
 	// C Call dll/so
-	///ret, _, err := vsim_encrypt.Call(uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)))
 	ret := C.vsim_encrypt(&srcSim, &encSim)
-	vlog.Info("    Lib_vsim_encrypt: %d", int32(ret))
-	if ret == 0 {
+	ret2 := int32(ret)
+	vlog.Info("    Lib_vsim_encrypt: %d", ret2)
+	if ret2 == 0 {
 		var ens_ascii_192 [ENC_DATA_192 * 2]byte
 		var ens_ascii_64 [ENC_DATA_64 * 2]byte
 
@@ -288,8 +285,11 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
 			vlog.Debug("de192: %s", (*res).EncData192)
 			vlog.Debug("de64: %s", (*res).EncData64)
 		*/
+	} else {
+		return -3
 	}
-	return int(ret)
+
+	return 0
 }
 
 //func main() {

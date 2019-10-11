@@ -223,9 +223,9 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
 
 	// C Call DLL
 	ret, _, err := syscall.Syscall(uintptr(vsim_encrypt), 2, uintptr(unsafe.Pointer(&srcSim)), uintptr(unsafe.Pointer(&encSim)), 0)
-	if err != nil {
-		vlog.Info("    %s", err.Error())
-		vlog.Info("    Lib_vsim_encrypt: %d", int32(ret))
+	ret2 := int32(ret)
+	vlog.Info("    Lib_vsim_encrypt: %d", ret2)
+	if ret2 == 0 {
 		var ens_ascii_192 [ENC_DATA_192 * 2]byte
 		var ens_ascii_64 [ENC_DATA_64 * 2]byte
 
@@ -277,8 +277,12 @@ func Lib_vsim_encrypt(reqsim SRC_SIM_DATA, res *ENC_SIM_DATA) int {
 			vlog.Debug("de192: %s", (*res).EncData192)
 			vlog.Debug("de64: %s", (*res).EncData64)
 		*/
+	} else {
+		vlog.Info("    %s", err.Error())
+		return -3
 	}
-	return int(ret)
+
+	return 0
 }
 
 //func main() {
