@@ -320,4 +320,10 @@ func test_vsim_encrypt() {
 	Lib_vsim_encrypt(srcsim, &encsim)
 	fmt.Printf("de192: %s\n", encsim.EncData192)
 	fmt.Printf("de64: %s\n", encsim.EncData64)
+
+	srcsim = SRC_SIM_DATA{}
+	encsim = ENC_SIM_DATA{}
+	Lib_vsim_encrypt(srcsim, &encsim)
+	fmt.Printf("de192: %s\n", encsim.EncData192)
+	fmt.Printf("de64: %s\n", encsim.EncData64)
 }

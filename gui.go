@@ -20,10 +20,10 @@ type portGroup struct {
 	Theme         nstyle.Theme
 	Module        Module_cfg
 	Message       string
-	Checkbox      [SERAIL_PORT_MAX]bool
-	TestCmdEditor [SERAIL_PORT_MAX]nucular.TextEditor
-	CheckValues   [SERAIL_PORT_MAX]int
-	CurrentPortId [SERAIL_PORT_MAX]int
+	Checkbox      [SERIAL_PORT_MAX]bool
+	TestCmdEditor [SERIAL_PORT_MAX]nucular.TextEditor
+	CheckValues   [SERIAL_PORT_MAX]int
+	CurrentPortId [SERIAL_PORT_MAX]int
 	ComboPorts    []string
 }
 
@@ -61,7 +61,7 @@ func newportGroup() (pg *portGroup) {
 	pg.Module = SIM800C
 	pg.ComboPorts = ports_list
 
-	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
 		//pg.TestCmdEditor[port_id].Flags = nucular.EditSelectable
 		pg.TestCmdEditor[port_id].Flags |= nucular.EditBox
 		pg.TestCmdEditor[port_id].Flags |= nucular.EditNeverInsertMode
@@ -80,7 +80,7 @@ func (pg *portGroup) showUI(w *nucular.Window) {
 	pg.showMenuBar(w)
 	w.Row(5).Dynamic(1)
 
-	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
 		pg.showPortG(w, port_id)
 	}
 
@@ -121,11 +121,14 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 	if w := w.Menu(label.TA("Module", "RC"), 150, nil); w != nil {
 		w.Row(25).Dynamic(1)
 		newmodule := pg.Module
+		if w.OptionText("SIM800C", newmodule == SIM800C) {
+			newmodule = SIM800C
+		}
 		if w.OptionText("EC20", newmodule == EC20) {
 			newmodule = EC20
 		}
-		if w.OptionText("SIM800C", newmodule == SIM800C) {
-			newmodule = SIM800C
+		if w.OptionText("EC20_AUTO", newmodule == EC20_AUTO) {
+			newmodule = EC20_AUTO
 		}
 
 		if MODULE_TEST {
@@ -285,7 +288,7 @@ func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int, check bool) {
 	vlog.Info("start %s all", myBtnTab[oper].BtnStr)
 	taskChan := make(chan PortResult)
 	taskCnt := 0
-	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
 		if (pg.Checkbox[port_id] || !check) && (portIsOK(port_id) != 0) {
 			taskCnt++
 			go pg.setTaskBtn(oper, port_id, taskChan)
@@ -306,6 +309,11 @@ func (pg *portGroup) btnLoadToken(w *nucular.Window) {
 
 func (pg *portGroup) btnRefreshPort(w *nucular.Window) {
 	pg.btnHandleAll(w, Btn_CMD_Close, false)
+
+	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
+		pg.CurrentPortId[port_id] = 0
+	}
+
 	ports_list = serialList()
 	pg.ComboPorts = ports_list
 	vlog.Info("Portlists: %v", ports_list)
@@ -345,7 +353,7 @@ func (pg *portGroup) checkBox(w *nucular.Window) bool {
 	cntCheck := 0
 	portlist := ""
 
-	for port_id := 0; port_id < SERAIL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
 		if pg.Checkbox[port_id] {
 			cntCheck++
 			if portIsOK(port_id) == 0 {

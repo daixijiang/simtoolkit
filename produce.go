@@ -10,34 +10,46 @@ import (
 	"vlog"
 )
 
-func serialProduce(portid int) int {
-	ret := getDevInfo(portid)
+func (mp *ModuleProduce) GoProduce(portid int) int {
+	ret := mp.PreProduce(portid)
+	if ret != 0 {
+		vlog.Info("######## Port[%d] => failed(%d) to prepare ...", portid, ret)
+		return ret
+	}
+
+	ret = mp.getDevInfo(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to getDevInfo ...", portid, ret)
 		return ret
 	}
 
-	ret = getProToken(portid)
+	ret = mp.getProToken(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to getProToken ...", portid, ret)
 		return ret
 	}
 
-	ret = getServInfo(portid)
+	ret = mp.getServInfo(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to getServInfo ...", portid, ret)
 		return ret
 	}
 
-	ret = getVsimDe(portid)
+	ret = mp.getVsimDe(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to getVsimDe ...", portid, ret)
 		return ret
 	}
 
-	ret = setVsimData(portid)
+	ret = mp.setVsimData(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to setVsimData ...", portid, ret)
+		return ret
+	}
+
+	ret = mp.GoCheck(portid)
+	if ret != 0 {
+		vlog.Info("######## Port[%d] => failed(%d) to checkdo ...", portid, ret)
 		return ret
 	}
 
@@ -45,66 +57,153 @@ func serialProduce(portid int) int {
 	return 0
 }
 
-func serialCheckDo(portid int) int {
+func (mp *ModuleProduce) PreProduce(portid int) int {
 	var result string
-	vlog.Info("Port[%d] => check device produce ...", portid)
+	vlog.Info("Port[%d] => prepare device produce ...", portid)
 
-	//check1 ccid "AT+CCID"
-	if (*myProduce.Mod)[Module_CMD3_CCID].CmdFunc != nil {
-		(*myProduce.Mod)[Module_CMD3_CCID].CmdFunc(
-			Module_CMD3_CCID, portid,
-			serial_port[portid].comPort,
-			&result)
+	//check imei
+	result = ""
+	ret := mp.DoComCMD(Module_CMD2_IMEI, portid, &result)
+	if ret <= 0 {
+		vlog.Info("######## Port[%d] get imei error: %s", portid, result)
+		return -1
+	}
+	vlog.Info("Port[%d] get imei: %s", portid, result)
+
+	//check system version
+	result = ""
+	ret = mp.DoComCMD(Module_CMD1_SYSVER, portid, &result)
+	vlog.Info("Port[%d] get system version: %s", portid, result)
+
+	//set softsimmode
+	result = ""
+	ret = mp.DoComCMD(Module_CMD1_SOFTMODE, portid, &result)
+	vlog.Info("Port[%d] set softsimmode: %s", portid, result)
+
+	//reset module
+	result = ""
+	ret = mp.DoComCMD(Module_CMD1_RESET0, portid, &result)
+	vlog.Info("Port[%d] reset0 module: %s", portid, result)
+
+	result = ""
+	ret = mp.DoComCMD(Module_CMD1_RESET1, portid, &result)
+	vlog.Info("Port[%d] reset1 module: %s", portid, result)
+	time.Sleep(time.Duration(1) * time.Second)
+
+	if mp.Type >= EC20 && mp.Type <= EC20_CT3 {
+		//set network
+		result = ""
+		ret = mp.DoComCMD(Module_PRE1_SET_NETWORK0, portid, &result)
+		vlog.Info("Port[%d] set network0: %s", portid, result)
+
+		result = ""
+		ret = mp.DoComCMD(Module_PRE1_SET_NETWORK1, portid, &result)
+		vlog.Info("Port[%d] set network1: %s", portid, result)
+		time.Sleep(time.Duration(1) * time.Second)
+
+		//set server url
+		result = ""
+		ret = mp.DoComCMD(Module_CMD1_SET_SERVURL, portid, &result)
+		vlog.Info("Port[%d] set server url: %s", portid, result)
+
+		if mp.Type == EC20_AUTO {
+			//set autoswitch-on
+			result = ""
+			ret = mp.DoComCMD(Module_CMD1_AUTOSWITCH_ON, portid, &result)
+			vlog.Info("Port[%d] set autoswitch-on: %s", portid, result)
+		} else {
+			//set autoswitch-off
+			result = ""
+			ret = mp.DoComCMD(Module_CMD1_AUTOSWITCH_OFF, portid, &result)
+			vlog.Info("Port[%d] set autoswitch-off: %s", portid, result)
+		}
+
+		//backup config
+		result = ""
+		ret = mp.DoComCMD(Module_CMD1_BACKUP_CONFIG, portid, &result)
+		vlog.Info("Port[%d] backup config: %s", portid, result)
 	}
 
-	//TODO, check iccid of cmcc/uni/tel
-	cur_iccid := serial_port[portid].devInfo.sim_src.VsimData[OPER_CN_MOBILE].Iccid
-	if result != cur_iccid {
-		vlog.Info("!!!!check ccid err: %s %s", result, cur_iccid)
-	} else {
-		vlog.Info("    check ccid ok: %s", result)
-	}
-
-	//TODO, check2 creg "AT+CREG?"
-	if (*myProduce.Mod)[Module_CMD3_CREG].CmdFunc != nil {
-		(*myProduce.Mod)[Module_CMD3_CREG].CmdFunc(
-			Module_CMD3_CREG, portid,
-			serial_port[portid].comPort,
-			&result)
-	}
-	vlog.Info("    get creg: %s", result)
 	return 0
 }
 
-func getDevInfo(portid int) int {
+func (mp *ModuleProduce) GoCheck(portid int) int {
+	var result string
+	vlog.Info("Port[%d] => check device produce ...", portid)
+	time.Sleep(time.Duration(1) * time.Second)
+
+	//check ccid "AT+CCID"
+	result = ""
+	mp.DoComCMD(Module_CMD3_CCID, portid, &result)
+	vlog.Info("Port[%d] get ccid: %s", portid, result)
+
+	//check cimi "AT+CIMI"
+	result = ""
+	mp.DoComCMD(Module_CMD3_CIMI, portid, &result)
+	vlog.Info("Port[%d] get cimi: %s", portid, result)
+
+	//check creg "AT+CREG?"
+	result = ""
+	mp.DoComCMD(Module_CMD3_CREG, portid, &result)
+	vlog.Info("Port[%d] get creg: %s", portid, result)
+
+	//check creg "AT+CEREG?"
+	result = ""
+	mp.DoComCMD(Module_CMD3_CEREG, portid, &result)
+	vlog.Info("Port[%d] get cereg: %s", portid, result)
+
+	//check creg "AT+COPS?"
+	result = ""
+	mp.DoComCMD(Module_CMD3_COPS, portid, &result)
+	vlog.Info("Port[%d] get cops: %s", portid, result)
+
+	if mp.Type >= EC20 && mp.Type <= EC20_CT3 {
+		//check multi-oper, switch to tel
+		result = ""
+		mp.DoComCMD(Module_CMD3_SWITCH_TEL, portid, &result)
+		vlog.Info("Port[%d] set switch tel: %s", portid, result)
+		time.Sleep(time.Duration(1) * time.Second)
+
+		result = ""
+		mp.DoComCMD(Module_CMD3_CCID, portid, &result)
+		vlog.Info("Port[%d] get ccid[tel]: %s", portid, result)
+
+		//check multi-oper, switch to uni
+		result = ""
+		mp.DoComCMD(Module_CMD3_SWITCH_CU, portid, &result)
+		vlog.Info("Port[%d] set switch uni: %s", portid, result)
+		time.Sleep(time.Duration(1) * time.Second)
+
+		result = ""
+		mp.DoComCMD(Module_CMD3_CCID, portid, &result)
+		vlog.Info("Port[%d] get ccid[uni]: %s", portid, result)
+
+		//check multi-oper, switch to cmcc
+		result = ""
+		mp.DoComCMD(Module_CMD3_SWITCH_CM, portid, &result)
+		vlog.Info("Port[%d] set switch cmcc: %s", portid, result)
+		time.Sleep(time.Duration(1) * time.Second)
+
+		result = ""
+		mp.DoComCMD(Module_CMD3_CCID, portid, &result)
+		vlog.Info("Port[%d] get ccid[cmcc]: %s", portid, result)
+	}
+
+	return 0
+}
+
+func (mp *ModuleProduce) getDevInfo(portid int) int {
 	vlog.Info("Port[%d] p(1.0)=> get device info ...", portid)
 	time.Sleep(time.Duration(1) * time.Second)
 
-	if (*myProduce.Mod)[Module_CMD2_IMEI].CmdFunc != nil {
-		(*myProduce.Mod)[Module_CMD2_IMEI].CmdFunc(
-			Module_CMD2_IMEI, portid,
-			serial_port[portid].comPort,
-			&serial_port[portid].devInfo.sim_src.Imei)
-	}
-
-	if (*myProduce.Mod)[Module_CMD2_CHIPID].CmdFunc != nil {
-		(*myProduce.Mod)[Module_CMD2_CHIPID].CmdFunc(
-			Module_CMD2_CHIPID, portid,
-			serial_port[portid].comPort,
-			&serial_port[portid].devInfo.sim_src.ChipID)
-	}
-
-	if (*myProduce.Mod)[Module_CMD2_VER].CmdFunc != nil {
-		(*myProduce.Mod)[Module_CMD2_VER].CmdFunc(
-			Module_CMD2_VER, portid,
-			serial_port[portid].comPort,
-			&serial_port[portid].devInfo.version)
-	}
+	mp.DoComCMD(Module_CMD2_IMEI, portid, &serial_port[portid].devInfo.sim_src.Imei)
+	mp.DoComCMD(Module_CMD2_CHIPID, portid, &serial_port[portid].devInfo.sim_src.ChipID)
+	mp.DoComCMD(Module_CMD2_COSVER, portid, &serial_port[portid].devInfo.version)
 
 	return 0
 }
 
-func getProToken(portid int) int {
+func (mp *ModuleProduce) getProToken(portid int) int {
 	vlog.Info("Port[%d] p(2.0)=> get token info ...", portid)
 
 	for index := 0; index < OPER_MAX; index++ {
@@ -113,26 +212,26 @@ func getProToken(portid int) int {
 	return 0
 }
 
-func getServInfo(portid int) int {
+func (mp *ModuleProduce) getServInfo(portid int) int {
 	var ret int
 	vlog.Info("Port[%d] p(3.0)=> get server info ...", portid)
 	time.Sleep(time.Duration(1) * time.Second)
 
-	ver := myProduce.UrlVer
+	ver := mp.UrlVer
 	if ver == SERVER_PLAIN_v0 {
-		ret = getServInfo_pv1(portid)
+		ret = mp.getServInfo_pv1(portid)
 	} else if ver == SERVER_Cipher {
-		ret = getServInfo_cv1(portid, SERVER_Cipher)
+		ret = mp.getServInfo_cv1(portid, SERVER_Cipher)
 	} else if ver == SERVER_Cipher_v1 {
-		ret = getServInfo_cv1(portid, SERVER_Cipher_v1)
+		ret = mp.getServInfo_cv1(portid, SERVER_Cipher_v1)
 	} else if ver == SERVER_Cipher_v3 {
-		ret = getServInfo_cv3(portid, SERVER_Cipher_v3)
+		ret = mp.getServInfo_cv3(portid, SERVER_Cipher_v3)
 	}
 
 	return ret
 }
 
-func getServInfo_pv1(portid int) int {
+func (mp *ModuleProduce) getServInfo_pv1(portid int) int {
 	var res []byte
 	var req_data devReqPlainData
 	var res_data devResPlainData
@@ -146,7 +245,7 @@ func getServInfo_pv1(portid int) int {
 		}
 
 		/* test */
-		if myProduce.TestFlag == 1 {
+		if mp.TestFlag == 1 {
 			if index == OPER_CN_MOBILE {
 				req_data.Imei = "867732034973305"
 			} else if index == OPER_CN_TELECOM {
@@ -191,7 +290,7 @@ func getServInfo_pv1(portid int) int {
 	return 0
 }
 
-func getServInfo_cv1(portid int, version int) int {
+func (mp *ModuleProduce) getServInfo_cv1(portid int, version int) int {
 	var res []byte
 	var res_data devResCipherData
 
@@ -204,7 +303,7 @@ func getServInfo_cv1(portid int, version int) int {
 	}
 
 	/* test */
-	if myProduce.TestFlag == 1 {
+	if mp.TestFlag == 1 {
 		req_data.Ver = "CosVer_1.1.4"
 		req_data.Imei = "867732034973305"
 		req_data.Chipid = "3934363531303236320A3A373B3C3A3B"
@@ -228,7 +327,7 @@ func getServInfo_cv1(portid int, version int) int {
 	return 0
 }
 
-func getServInfo_cv3(portid int, version int) int {
+func (mp *ModuleProduce) getServInfo_cv3(portid int, version int) int {
 	var res []byte
 	var res_data devResCipherData
 
@@ -245,7 +344,7 @@ func getServInfo_cv3(portid int, version int) int {
 	req_data.Token = token_json
 
 	/* test */
-	if myProduce.TestFlag == 1 {
+	if mp.TestFlag == 1 {
 		req_data.Ver = "CosVer_1.1.4"
 		req_data.Imei = "867732034973305"
 		req_data.Chipid = "3934363531303236320A3A373B3C3A3B"
@@ -268,15 +367,15 @@ func getServInfo_cv3(portid int, version int) int {
 	return 0
 }
 
-func getVsimDe(portid int) int {
+func (mp *ModuleProduce) getVsimDe(portid int) int {
 	var ret int
 	vlog.Info("Port[%d] p(4.0)=> get vsim de ...", portid)
 
-	ver := myProduce.UrlVer
+	ver := mp.UrlVer
 	if ver == SERVER_PLAIN_v0 {
-		ret = getVsimDe_pv(portid)
+		ret = mp.getVsimDe_pv(portid)
 	} else {
-		ret = getVsimDe_cv(portid)
+		ret = mp.getVsimDe_cv(portid)
 	}
 
 	vlog.Info("    crypto de192: %s", serial_port[portid].devInfo.sim_ens.EncData192)
@@ -285,11 +384,11 @@ func getVsimDe(portid int) int {
 	return ret
 }
 
-func getVsimDe_pv(portid int) int {
+func (mp *ModuleProduce) getVsimDe_pv(portid int) int {
 	return Lib_vsim_encrypt(serial_port[portid].devInfo.sim_src, &serial_port[portid].devInfo.sim_ens)
 }
 
-func getVsimDe_cv(portid int) int {
+func (mp *ModuleProduce) getVsimDe_cv(portid int) int {
 	encdata := []byte(serial_port[portid].devInfo.servde)
 	delen := len(serial_port[portid].devInfo.servde)
 	if delen >= ENC_DATA_192 {
@@ -302,29 +401,20 @@ func getVsimDe_cv(portid int) int {
 	return 0
 }
 
-func setVsimData(portid int) int {
+func (mp *ModuleProduce) setVsimData(portid int) int {
 	var result string
 	vlog.Info("Port[%d] p(5.0)=> do producing on ...", portid)
 
 	ret := 0
-
-	if ((*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc != nil) &&
-		(serial_port[portid].devInfo.sim_ens.EncData192 != "") {
-		ret = (*myProduce.Mod)[Module_CMD2_SIM192].CmdFunc(
-			Module_CMD2_SIM192, portid,
-			serial_port[portid].comPort,
-			&result)
-
+	if serial_port[portid].devInfo.sim_ens.EncData192 != "" {
+		result = ""
+		ret = mp.DoComCMD(Module_CMD2_SIM192, portid, &result)
 		vlog.Info("    set de192 %s", result)
 	}
 
-	if ((*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc != nil) &&
-		(serial_port[portid].devInfo.sim_ens.EncData64 != "") {
-		ret = (*myProduce.Mod)[Module_CMD2_SIM64].CmdFunc(
-			Module_CMD2_SIM64, portid,
-			serial_port[portid].comPort,
-			&result)
-
+	if serial_port[portid].devInfo.sim_ens.EncData64 != "" {
+		result = ""
+		ret = mp.DoComCMD(Module_CMD2_SIM64, portid, &result)
 		vlog.Info("    set de64 %s", result)
 	}
 

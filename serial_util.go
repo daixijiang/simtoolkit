@@ -17,11 +17,14 @@ import (
 const APP_AT_OK string = "AT"
 
 /* Port struct */
-const SERAIL_PORT_MAX = 8
+const SERIAL_PORT_MAX = 8
+
+const SERIAL_TIMEOUT = 3000
+const SERIAL_TIMEWAIT = 500
 
 var COM_RNAME_PREFIX string
 var COM_SNAME_PREFIX string
-var at_reply [SERAIL_PORT_MAX]string
+var at_reply [SERIAL_PORT_MAX]string
 
 const (
 	PORT_STATUS_CLOSE   = 0
@@ -45,7 +48,7 @@ type device_info struct {
 	servde  string
 }
 
-var serial_port [SERAIL_PORT_MAX]serial_port_info
+var serial_port [SERIAL_PORT_MAX]serial_port_info
 var ports_list []string
 
 /* Port end */
@@ -58,7 +61,7 @@ func portIsOK(portid int) int {
 	return 0
 }
 
-func serialWriteAndEcho(portid int, s *serial.Port, strCmd string) string {
+func serialWriteAndEcho(portid int, s *serial.Port, strCmd string, millsecond int) string {
 	buf := make([]byte, 512)
 	at_reply[portid] = ""
 
@@ -74,7 +77,12 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string) string {
 		return at_reply[portid]
 	}
 
-	time.Sleep(time.Duration(100) * time.Millisecond)
+	if millsecond == 0 {
+		millsecond = SERIAL_TIMEWAIT
+	} else if millsecond > SERIAL_TIMEOUT {
+		millsecond = SERIAL_TIMEOUT
+	}
+	time.Sleep(time.Duration(millsecond) * time.Millisecond)
 
 	at_reply[portid] = ""
 	for i := 0; i < 10; i++ {
@@ -103,7 +111,7 @@ func serialOpen(portid int, strCom string) int {
 		serial_port[portid].strInfo = fmt.Sprintf("%s", "o")
 		return 0
 	}
-	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: 100}
+	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: SERIAL_TIMEOUT}
 	s, err := serial.OpenPort(c)
 	if err != nil {
 		vlog.Error("Port[%d] => open %s failed: %s", portid, strCom, err)
@@ -111,7 +119,7 @@ func serialOpen(portid int, strCom string) int {
 	}
 	serial_port[portid].portname = strCom
 
-	resp := serialWriteAndEcho(portid, s, APP_AT_OK)
+	resp := serialWriteAndEcho(portid, s, APP_AT_OK, 0)
 	vlog.Info("%s", resp)
 
 	serial_port[portid].port_status = PORT_STATUS_OPEN
@@ -123,10 +131,52 @@ func serialOpen(portid int, strCom string) int {
 
 func serialATsendCmd(portid int, strCom string, strCmd string) {
 	vlog.Info("Port[%d] => AT send cmd[%s] port %s", portid, strCmd, strCom)
-	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd)
+	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd, SERIAL_TIMEWAIT)
 	vlog.Info("%s", resp)
 }
 
+/* general get info */
+/* eg: "AT+GSN\r\r\n
+ * 862107043586551\r\n\r\n
+ * OK\r\n"
+ */
+func serial_atget_info(cmdid int, cmdstr string, portid int, s *serial.Port, reply *string) int {
+	resp := serialWriteAndEcho(portid, s, cmdstr, 0)
+	rs := []byte(resp)
+	length := len(rs)
+	sublen := len(cmdstr)
+
+	vlog.Info("    AT cmd(%d): %q", length, []byte(resp))
+	pos1 := strings.Index(resp, cmdstr+"\r\r\n")
+	pos2 := strings.Index(resp, "\r\n\r\nOK")
+	if pos1 >= 0 && pos2 >= 0 {
+		preresp := string(rs[sublen+len("\r\r\n") : pos2])
+		vlog.Info("    AT get(%d): %s", len(preresp), preresp)
+		*reply = preresp
+		return len(*reply)
+	}
+
+	return 0
+}
+
+func serial_atget2_info(cmdid int, cmdstr string, portid int, s *serial.Port, reply *string) int {
+	resp := serialWriteAndEcho(portid, s, cmdstr, SERIAL_TIMEOUT)
+	rs := []byte(resp)
+	length := len(rs)
+	sublen := len(cmdstr)
+
+	vlog.Info("    AT cmd(%d): %q", length, []byte(resp))
+	pos1 := strings.Index(resp, cmdstr+"\r\r\n")
+	pos2 := strings.Index(resp, "\r\n\r\nOK")
+	if pos1 >= 0 && pos2 >= 0 {
+		preresp := string(rs[sublen+len("\r\r\n") : pos2])
+		vlog.Info("    AT get(%d): %s", len(preresp), preresp)
+		*reply = preresp
+		return len(*reply)
+	}
+
+	return 0
+}
 func serialClose(portid int) int {
 	vlog.Info("Port[%d] => close port %s", portid, serial_port[portid].portname)
 	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
@@ -136,6 +186,14 @@ func serialClose(portid int) int {
 	}
 	serial_port[portid].strInfo = fmt.Sprintf("%s", "")
 	return 0
+}
+
+func serialProduce(portid int) int {
+	return thisModule.GoProduce(portid)
+}
+
+func serialCheckDo(portid int) int {
+	return thisModule.GoCheck(portid)
 }
 
 func serialList() []string {
