@@ -41,6 +41,13 @@ func module_sim800c_init() *[Module_TAB_AT_CMD_MAX]ModCmdTable {
 		"AT+CFUN=1",
 		serial_atget_info,
 	}
+
+	myModCmd[Module_CMD1_RESET2] = ModCmdTable{
+		Module_CMD1_RESET2,
+		"AT+CFUN=1,1",
+		serial_atget_info,
+	}
+
 	////cmd for produce
 	myModCmd[Module_CMD2_IMEI] = ModCmdTable{
 		Module_CMD2_IMEI,

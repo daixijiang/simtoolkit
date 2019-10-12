@@ -12,16 +12,17 @@ import (
 /* ModuleTable */
 const (
 	// prepare
-	Module_CMD1_SYSVER         = 10
-	Module_CMD1_SOFTMODE       = 11
-	Module_CMD1_RESET0         = 12
-	Module_CMD1_RESET1         = 13
-	Module_PRE1_SET_NETWORK0   = 14
-	Module_PRE1_SET_NETWORK1   = 15
-	Module_CMD1_SET_SERVURL    = 16
-	Module_CMD1_AUTOSWITCH_ON  = 17
-	Module_CMD1_AUTOSWITCH_OFF = 18
-	Module_CMD1_BACKUP_CONFIG  = 19
+	Module_CMD1_SYSVER         = 1
+	Module_CMD1_SOFTMODE       = 2
+	Module_CMD1_RESET0         = 3
+	Module_CMD1_RESET1         = 4
+	Module_CMD1_RESET2         = 5
+	Module_PRE1_SET_NETWORK0   = 6
+	Module_PRE1_SET_NETWORK1   = 7
+	Module_CMD1_SET_SERVURL    = 8
+	Module_CMD1_AUTOSWITCH_ON  = 9
+	Module_CMD1_AUTOSWITCH_OFF = 10
+	Module_CMD1_BACKUP_CONFIG  = 11
 
 	// produce
 	Module_CMD2_IMEI   = 20

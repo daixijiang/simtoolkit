@@ -43,6 +43,12 @@ func module_ec20_init() *[Module_TAB_AT_CMD_MAX]ModCmdTable {
 		serial_atget_info,
 	}
 
+	myModCmd[Module_CMD1_RESET2] = ModCmdTable{
+		Module_CMD1_RESET2,
+		"AT+CFUN=1,1",
+		serial_atget_info,
+	}
+
 	myModCmd[Module_PRE1_SET_NETWORK0] = ModCmdTable{
 		Module_PRE1_SET_NETWORK0,
 		"AT+QMBNCFG=\"autosel\",0",

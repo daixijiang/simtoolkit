@@ -10,13 +10,20 @@ import (
 	"vlog"
 )
 
+const WAIT_TIME_COLDRESET = 30
+const WAIT_TIME_HOTRESET = 5
+const WAIT_TIME_CREG = 3
+const WAIT_TIME_COMMON = 1
+
 func (mp *ModuleProduce) GoProduce(portid int) int {
+	//prepare
 	ret := mp.PreProduce(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to prepare ...", portid, ret)
 		return ret
 	}
 
+	//produce
 	ret = mp.getDevInfo(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to getDevInfo ...", portid, ret)
@@ -47,6 +54,17 @@ func (mp *ModuleProduce) GoProduce(portid int) int {
 		return ret
 	}
 
+	//hot-reset module
+	result := ""
+	ret = mp.DoComCMD(Module_CMD1_RESET0, portid, &result)
+	vlog.Info("Port[%d] reset0 module: %s", portid, result)
+	result = ""
+	ret = mp.DoComCMD(Module_CMD1_RESET1, portid, &result)
+	vlog.Info("Port[%d] reset1 module: %s", portid, result)
+	//hot-reset wait
+	time.Sleep(time.Duration(WAIT_TIME_HOTRESET) * time.Second)
+
+	//check
 	ret = mp.GoCheck(portid)
 	if ret != 0 {
 		vlog.Info("######## Port[%d] => failed(%d) to checkdo ...", portid, ret)
@@ -80,15 +98,12 @@ func (mp *ModuleProduce) PreProduce(portid int) int {
 	ret = mp.DoComCMD(Module_CMD1_SOFTMODE, portid, &result)
 	vlog.Info("Port[%d] set softsimmode: %s", portid, result)
 
-	//reset module
+	//cold-reset module
 	result = ""
-	ret = mp.DoComCMD(Module_CMD1_RESET0, portid, &result)
-	vlog.Info("Port[%d] reset0 module: %s", portid, result)
-
-	result = ""
-	ret = mp.DoComCMD(Module_CMD1_RESET1, portid, &result)
-	vlog.Info("Port[%d] reset1 module: %s", portid, result)
-	time.Sleep(time.Duration(1) * time.Second)
+	ret = mp.DoComCMD(Module_CMD1_RESET2, portid, &result)
+	vlog.Info("Port[%d] reset2 module: %s", portid, result)
+	//cold-reset wait
+	time.Sleep(time.Duration(WAIT_TIME_COLDRESET) * time.Second)
 
 	if mp.Type >= EC20 && mp.Type <= EC20_CT3 {
 		//set network
@@ -99,7 +114,6 @@ func (mp *ModuleProduce) PreProduce(portid int) int {
 		result = ""
 		ret = mp.DoComCMD(Module_PRE1_SET_NETWORK1, portid, &result)
 		vlog.Info("Port[%d] set network1: %s", portid, result)
-		time.Sleep(time.Duration(1) * time.Second)
 
 		//set server url
 		result = ""
@@ -130,7 +144,7 @@ func (mp *ModuleProduce) PreProduce(portid int) int {
 func (mp *ModuleProduce) GoCheck(portid int) int {
 	var result string
 	vlog.Info("Port[%d] => check device produce ...", portid)
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Duration(WAIT_TIME_COMMON) * time.Second)
 
 	//check ccid "AT+CCID"
 	result = ""
@@ -162,7 +176,8 @@ func (mp *ModuleProduce) GoCheck(portid int) int {
 		result = ""
 		mp.DoComCMD(Module_CMD3_SWITCH_TEL, portid, &result)
 		vlog.Info("Port[%d] set switch tel: %s", portid, result)
-		time.Sleep(time.Duration(1) * time.Second)
+		//creg wait
+		time.Sleep(time.Duration(WAIT_TIME_CREG) * time.Second)
 
 		result = ""
 		mp.DoComCMD(Module_CMD3_CCID, portid, &result)
@@ -172,7 +187,8 @@ func (mp *ModuleProduce) GoCheck(portid int) int {
 		result = ""
 		mp.DoComCMD(Module_CMD3_SWITCH_CU, portid, &result)
 		vlog.Info("Port[%d] set switch uni: %s", portid, result)
-		time.Sleep(time.Duration(1) * time.Second)
+		//creg wait
+		time.Sleep(time.Duration(WAIT_TIME_CREG) * time.Second)
 
 		result = ""
 		mp.DoComCMD(Module_CMD3_CCID, portid, &result)
@@ -182,7 +198,8 @@ func (mp *ModuleProduce) GoCheck(portid int) int {
 		result = ""
 		mp.DoComCMD(Module_CMD3_SWITCH_CM, portid, &result)
 		vlog.Info("Port[%d] set switch cmcc: %s", portid, result)
-		time.Sleep(time.Duration(1) * time.Second)
+		//creg wait
+		time.Sleep(time.Duration(WAIT_TIME_CREG) * time.Second)
 
 		result = ""
 		mp.DoComCMD(Module_CMD3_CCID, portid, &result)
@@ -194,7 +211,7 @@ func (mp *ModuleProduce) GoCheck(portid int) int {
 
 func (mp *ModuleProduce) getDevInfo(portid int) int {
 	vlog.Info("Port[%d] p(1.0)=> get device info ...", portid)
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Duration(WAIT_TIME_COMMON) * time.Second)
 
 	mp.DoComCMD(Module_CMD2_IMEI, portid, &serial_port[portid].devInfo.sim_src.Imei)
 	mp.DoComCMD(Module_CMD2_CHIPID, portid, &serial_port[portid].devInfo.sim_src.ChipID)
@@ -215,7 +232,7 @@ func (mp *ModuleProduce) getProToken(portid int) int {
 func (mp *ModuleProduce) getServInfo(portid int) int {
 	var ret int
 	vlog.Info("Port[%d] p(3.0)=> get server info ...", portid)
-	time.Sleep(time.Duration(1) * time.Second)
+	time.Sleep(time.Duration(WAIT_TIME_COMMON) * time.Second)
 
 	ver := mp.UrlVer
 	if ver == SERVER_PLAIN_v0 {
