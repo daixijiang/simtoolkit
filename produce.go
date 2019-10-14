@@ -261,7 +261,7 @@ func (mp *ModuleProduce) getServInfo_pv1(portid int) int {
 		}
 
 		/* test */
-		if mp.TestFlag == 1 {
+		if gConfig.Simfake == 1 {
 			if index == OPER_CN_MOBILE {
 				req_data.Imei = "867732034973305"
 			} else if index == OPER_CN_TELECOM {
@@ -319,7 +319,7 @@ func (mp *ModuleProduce) getServInfo_cv1(portid int, version int) int {
 	}
 
 	/* test */
-	if mp.TestFlag == 1 {
+	if gConfig.Simfake == 1 {
 		req_data.Ver = "CosVer_1.1.4"
 		req_data.Imei = "867732034973305"
 		req_data.Chipid = "3934363531303236320A3A373B3C3A3B"
@@ -360,7 +360,7 @@ func (mp *ModuleProduce) getServInfo_cv3(portid int, version int) int {
 	req_data.Token = token_json
 
 	/* test */
-	if mp.TestFlag == 1 {
+	if gConfig.Simfake == 1 {
 		req_data.Ver = "CosVer_1.1.4"
 		req_data.Imei = "867732034973305"
 		req_data.Chipid = "3934363531303236320A3A373B3C3A3B"

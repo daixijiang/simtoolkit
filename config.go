@@ -13,7 +13,8 @@ import (
 
 {
   "scaling": 1.5,
-  "testflag": 0,
+  "verbose": 0,
+  "simfake": 0,
   "log": {
     "level": "info",
     "file": "vsimkit.log",
@@ -79,13 +80,14 @@ type config_serial struct {
 }
 
 type SysConfig struct {
-	Testflag int
-	Scaling  float64
-	Log      config_log
-	Token    config_token
-	Server   config_server
-	Produce  config_produce
-	Serial   config_serial
+	Verbose int
+	Simfake int
+	Scaling float64
+	Log     config_log
+	Token   config_token
+	Server  config_server
+	Produce config_produce
+	Serial  config_serial
 }
 
 var gConfig SysConfig
@@ -94,15 +96,10 @@ const CONFIG_PATH string = "./"
 const CONFIG_NAME string = "simconfig"
 const CONFIG_TYPE string = "json"
 
-func config_init() {
-	config := viper.New()
-	config.AddConfigPath(CONFIG_PATH)
-	config.SetConfigName(CONFIG_NAME)
-	config.SetConfigType(CONFIG_TYPE)
-
-	//set default value
+func config_set_default(config *viper.Viper) {
 	config.SetDefault("scaling", "1.3")
-	config.SetDefault("testflag", "0")
+	config.SetDefault("verbose", "0")
+	config.SetDefault("simfake", "0")
 
 	config.SetDefault("log.level", "info")
 	config.SetDefault("log.file", CONFIG_PATH+"vsimkit.log")
@@ -118,55 +115,101 @@ func config_init() {
 	config.SetDefault("server.cipherv1_url", "https://rdp.showmac.cn/api/v1/profile/get")
 	config.SetDefault("server.cipherv3_url", "https://rdp.showmac.cn/api/v3/profile/get")
 
-	config.SetDefault("produce.timeout_cold_reset", "30")
-	config.SetDefault("produce.timeout_hot_reset", "5")
-	config.SetDefault("produce.timeout_creg", "3")
-	config.SetDefault("produce.timeout_common", "1")
-
 	config.SetDefault("serial.serial_max", "8")
 	config.SetDefault("serial.serial_timeout", "3000")
 	config.SetDefault("serial.serial_timewait", "200")
 
+	config.SetDefault("produce.timeout_cold_reset", "30")
+	config.SetDefault("produce.timeout_hot_reset", "5")
+	config.SetDefault("produce.timeout_creg", "3")
+	config.SetDefault("produce.timeout_common", "1")
+}
+
+func config_get_value(config *viper.Viper) {
+	config.GetFloat64("scaling")
+	config.GetInt("verbose")
+	config.GetInt("simfake")
+
+	config.GetString("log.level")
+	config.GetString("log.file")
+	config.GetInt("log.maxday")
+
+	config.GetInt("token.max")
+	config.GetString("token.cmcc_file")
+	config.GetString("token.uni_file")
+	config.GetString("token.tel_file")
+
+	config.GetString("server.plain_url")
+	config.GetString("server.cipher_url")
+	config.GetString("server.cipherv1_url")
+	config.GetString("server.cipherv3_url")
+
+	config.GetInt("serial.serial_max")
+	config.GetInt("serial.serial_timeout")
+	config.GetInt("serial.serial_timewait")
+
+	config.GetInt("produce.timeout_cold_reset")
+	config.GetInt("produce.timeout_hot_reset")
+	config.GetInt("produce.timeout_creg")
+	config.GetInt("produce.timeout_common")
+}
+
+func config_print_value(gConfig SysConfig) {
+	fmt.Printf("---------------------------------\n")
+	fmt.Printf("version:                \t%s\n", szVersion)
+	fmt.Printf("scaling:                \t%f\n", gConfig.Scaling)
+	fmt.Printf("verbose:                \t%d\n", gConfig.Verbose)
+	fmt.Printf("simfake:                \t%d\n", gConfig.Simfake)
+
+	fmt.Printf("log.level:              \t%s\n", gConfig.Log.Level)
+	fmt.Printf("log.file:               \t%s\n", gConfig.Log.File)
+	fmt.Printf("log.maxday:             \t%d\n", gConfig.Log.Maxday)
+
+	fmt.Printf("token.max:              \t%d\n", gConfig.Token.Max)
+	fmt.Printf("token.cmcc_file:        \t%s\n", gConfig.Token.Cmcc_file)
+	fmt.Printf("token.uni_file:         \t%s\n", gConfig.Token.Uni_file)
+	fmt.Printf("token.tel_file:         \t%s\n", gConfig.Token.Tel_file)
+
+	//fmt.Printf("server.plain_url:       \t%s\n", gConfig.Server.Plain_url)
+	//fmt.Printf("server.cipher_url:      \t%s\n", gConfig.Server.Cipher_url)
+	//fmt.Printf("server.cipherv1_url:    \t%s\n", gConfig.Server.Cipherv1_url)
+	//fmt.Printf("server.cipherv3_url:    \t%s\n", gConfig.Server.Cipherv3_url)
+
+	fmt.Printf("serial.serial_max:      \t%d\n", gConfig.Serial.Serial_max)
+	fmt.Printf("serial.serial_timeout:  \t%d\n", gConfig.Serial.Serial_timeout)
+	fmt.Printf("serial.serial_timewait: \t%d\n", gConfig.Serial.Serial_timewait)
+
+	fmt.Printf("produce.timeout_cold_reset: \t%d\n", gConfig.Produce.Timeout_cold_reset)
+	fmt.Printf("produce.timeout_hot_reset: \t%d\n", gConfig.Produce.Timeout_hot_reset)
+	fmt.Printf("produce.timeout_creg:   \t%d\n", gConfig.Produce.Timeout_creg)
+	fmt.Printf("produce.timeout_common: \t%d\n", gConfig.Produce.Timeout_common)
+
+	fmt.Printf("---------------------------------\n")
+}
+
+func config_init() {
+	config := viper.New()
+	config.AddConfigPath(CONFIG_PATH)
+	config.SetConfigName(CONFIG_NAME)
+	config.SetConfigType(CONFIG_TYPE)
+
+	//set default value
+	config_set_default(config)
+
 	// read config
 	if err := config.ReadInConfig(); err != nil {
-		fmt.Printf("Faile to read %s%s.%s !\n", CONFIG_PATH, CONFIG_NAME, CONFIG_TYPE)
-	}
-
-	{
+		fmt.Printf("Faile to read %s%s.%s\n", CONFIG_PATH, CONFIG_NAME, CONFIG_TYPE)
+	} else {
 		//get value
-		fmt.Printf("scaling: %f\n", config.GetFloat64("scaling"))
-		fmt.Printf("testflag: %d\n", config.GetInt("testflag"))
-
-		fmt.Printf("log.level: %s\n", config.GetString("log.level"))
-		fmt.Printf("log.file: %s\n", config.GetString("log.file"))
-		fmt.Printf("log.maxday: %d\n", config.GetInt("log.maxday"))
-
-		fmt.Printf("token.max: %d\n", config.GetInt("token.max"))
-		fmt.Printf("token.cmcc_file: %s\n", config.GetString("token.cmcc_file"))
-		fmt.Printf("token.uni_file: %s\n", config.GetString("token.uni_file"))
-		fmt.Printf("token.tel_file: %s\n", config.GetString("token.tel_file"))
-
-		fmt.Printf("server.plain_url: %s\n", config.GetString("server.plain_url"))
-		fmt.Printf("server.cipher_url: %s\n", config.GetString("server.cipher_url"))
-		fmt.Printf("server.cipherv1_url: %s\n", config.GetString("server.cipherv1_url"))
-		fmt.Printf("server.cipherv3_url: %s\n", config.GetString("server.cipherv3_url"))
-
-		fmt.Printf("serial.serial_max: %d\n", config.GetInt("serial.serial_max"))
-		fmt.Printf("serial.serial_timeout: %d\n", config.GetInt("serial.serial_timeout"))
-		fmt.Printf("serial.serial_timewait: %d\n", config.GetInt("serial.serial_timewait"))
-
-		fmt.Printf("produce.timeout_cold_reset: %d\n", config.GetInt("produce.timeout_cold_reset"))
-		fmt.Printf("produce.timeout_hot_reset: %d\n", config.GetInt("produce.timeout_hot_reset"))
-		fmt.Printf("produce.timeout_creg: %d\n", config.GetInt("produce.timeout_creg"))
-		fmt.Printf("produce.timeout_common: %d\n", config.GetInt("produce.timeout_common"))
+		config_get_value(config)
 	}
 
-	//直接反序列化为Struct
+	// json to struct
 	if err := config.Unmarshal(&gConfig); err != nil {
 		fmt.Println(err)
 	}
 
-	//fmt.Println(gConfig)
+	config_print_value(gConfig)
 }
 
 func log_init() {

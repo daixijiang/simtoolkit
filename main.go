@@ -7,6 +7,7 @@ package main
 import (
 	"github.com/aarzilli/nucular"
 	nstyle "github.com/aarzilli/nucular/style"
+	"vlog"
 )
 
 const szTitle string = "VSIM Serial Product Toolkit"
@@ -18,6 +19,9 @@ var mytheme nstyle.Theme = nstyle.DarkTheme
 func main() {
 	config_init()
 	log_init()
+
+	vlog.Info("version %s", szVersion)
+
 	module_init()
 	token_init()
 	server_init()

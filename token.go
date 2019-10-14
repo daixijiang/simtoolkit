@@ -12,7 +12,7 @@ import (
 	"vlog"
 )
 
-const TOKEN_MAX = 100
+const TOKEN_MAX = 1000
 
 type simToken struct {
 	Token   string
@@ -92,7 +92,7 @@ func readTokenfile(fileName string, oper int) int {
 
 func addToken(token string, oper int) {
 	index := myTokenStat[oper].total
-	if index < TOKEN_MAX {
+	if index < gConfig.Token.Max {
 		myTokenStat[oper].sToken[index].Token = token
 		myTokenStat[oper].sToken[index].Useflag = 0
 		myTokenStat[oper].sToken[index].Imei = ""

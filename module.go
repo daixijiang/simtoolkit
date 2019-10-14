@@ -64,10 +64,9 @@ type ModCmdTable struct {
 }
 
 type ModuleProduce struct {
-	Type     Module_cfg
-	ModCmd   *[Module_TAB_AT_CMD_MAX]ModCmdTable
-	UrlVer   int
-	TestFlag int
+	Type   Module_cfg
+	ModCmd *[Module_TAB_AT_CMD_MAX]ModCmdTable
+	UrlVer int
 }
 
 var modCmd_EC20 [Module_TAB_AT_CMD_MAX]ModCmdTable
@@ -99,10 +98,9 @@ func module_init() {
 
 	// default is sim800c
 	thisModule = &ModuleProduce{
-		Type:     SIM800C,
-		ModCmd:   &modCmd_SIM800C,
-		UrlVer:   SERVER_Cipher,
-		TestFlag: 0,
+		Type:   SIM800C,
+		ModCmd: &modCmd_SIM800C,
+		UrlVer: SERVER_Cipher,
 	}
 
 }
@@ -110,56 +108,43 @@ func module_init() {
 func module_reinit(module Module_cfg) {
 	if module == SIM800C {
 		thisModule = &ModuleProduce{
-			Type:     module,
-			ModCmd:   &modCmd_SIM800C,
-			UrlVer:   SERVER_Cipher,
-			TestFlag: 0,
+			Type:   module,
+			ModCmd: &modCmd_SIM800C,
+			UrlVer: SERVER_Cipher,
 		}
 	} else if module == EC20 {
 		thisModule = &ModuleProduce{
-			Type:     module,
-			ModCmd:   &modCmd_EC20,
-			UrlVer:   SERVER_PLAIN_v0,
-			TestFlag: 0,
+			Type:   module,
+			ModCmd: &modCmd_EC20,
+			UrlVer: SERVER_PLAIN_v0,
 		}
 	} else if module == EC20_AUTO {
 		thisModule = &ModuleProduce{
-			Type:     module,
-			ModCmd:   &modCmd_EC20,
-			UrlVer:   SERVER_PLAIN_v0,
-			TestFlag: 0,
+			Type:   module,
+			ModCmd: &modCmd_EC20,
+			UrlVer: SERVER_PLAIN_v0,
 		}
 	} else {
 		// default is sim800c
 		thisModule = &ModuleProduce{
-			Type:     module,
-			ModCmd:   &modCmd_SIM800C,
-			UrlVer:   SERVER_Cipher,
-			TestFlag: 0,
+			Type:   module,
+			ModCmd: &modCmd_SIM800C,
+			UrlVer: SERVER_Cipher,
 		}
 
 		/* test */
-		if gConfig.Testflag == 1 {
-			if module == EC20_TP {
+		if gConfig.Simfake == 1 {
+			if module == EC20_TC1 {
 				thisModule = &ModuleProduce{
-					Type:     module,
-					ModCmd:   &modCmd_EC20,
-					UrlVer:   SERVER_PLAIN_v0,
-					TestFlag: 1,
-				}
-			} else if module == EC20_TC1 {
-				thisModule = &ModuleProduce{
-					Type:     module,
-					ModCmd:   &modCmd_EC20,
-					UrlVer:   SERVER_Cipher_v1,
-					TestFlag: 1,
+					Type:   module,
+					ModCmd: &modCmd_EC20,
+					UrlVer: SERVER_Cipher_v1,
 				}
 			} else if module == EC20_TC3 {
 				thisModule = &ModuleProduce{
-					Type:     module,
-					ModCmd:   &modCmd_EC20,
-					UrlVer:   SERVER_Cipher_v3,
-					TestFlag: 1,
+					Type:   module,
+					ModCmd: &modCmd_EC20,
+					UrlVer: SERVER_Cipher_v3,
 				}
 			}
 		}

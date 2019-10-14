@@ -131,10 +131,7 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 			newmodule = EC20_AUTO
 		}
 
-		if gConfig.Testflag == 1 {
-			if w.OptionText("EC20_TP", newmodule == EC20_TP) {
-				newmodule = EC20_TP
-			}
+		if gConfig.Simfake == 1 {
 			if w.OptionText("EC20_TC1", newmodule == EC20_TC1) {
 				newmodule = EC20_TC1
 			}
