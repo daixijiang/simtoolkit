@@ -50,12 +50,10 @@ const (
 	SIM800C = Module_cfg(iota)
 	EC20
 	EC20_AUTO
-	EC20_PT
-	EC20_CT1
-	EC20_CT3
+	EC20_TP
+	EC20_TC1
+	EC20_TC3
 )
-
-const MODULE_TEST = false
 
 type cmdHandler func(cmdid int, cmdstr string, portid int, s *serial.Port, reply *string) int
 
@@ -72,8 +70,8 @@ type ModuleProduce struct {
 	TestFlag int
 }
 
-var modCmd_EC20 *[Module_TAB_AT_CMD_MAX]ModCmdTable
-var modCmd_SIM800C *[Module_TAB_AT_CMD_MAX]ModCmdTable
+var modCmd_EC20 [Module_TAB_AT_CMD_MAX]ModCmdTable
+var modCmd_SIM800C [Module_TAB_AT_CMD_MAX]ModCmdTable
 var thisModule *ModuleProduce
 
 func (mp *ModuleProduce) DoComCMD(cmdid int, portid int, result *string) int {
@@ -81,28 +79,28 @@ func (mp *ModuleProduce) DoComCMD(cmdid int, portid int, result *string) int {
 		return -1
 	}
 
-	funcdo := (mp.ModCmd)[cmdid].CmdFunc
+	funcdo := mp.ModCmd[cmdid].CmdFunc
 	if funcdo == nil {
 		return 0
 	}
 
-	if (mp.ModCmd)[cmdid].CmdStr == "" {
+	if mp.ModCmd[cmdid].CmdStr == "" {
 		return 0
 	}
 
-	vlog.Debug("DoComCMD: cmdid %d, cmd %s, func %p", cmdid, (mp.ModCmd)[cmdid].CmdStr, funcdo)
-	return funcdo(cmdid, (mp.ModCmd)[cmdid].CmdStr, portid, serial_port[portid].comPort, result)
+	vlog.Debug("DoComCMD: cmdid %d, cmd %s, func %p", cmdid, mp.ModCmd[cmdid].CmdStr, funcdo)
+	return funcdo(cmdid, mp.ModCmd[cmdid].CmdStr, portid, serial_port[portid].comPort, result)
 }
 
 func module_init() {
-	modCmd_EC20 = module_ec20_init()
-	modCmd_SIM800C = module_sim800c_init()
+	module_ec20_init(&modCmd_EC20)
+	module_sim800c_init(&modCmd_SIM800C)
 	// add list of module init
 
 	// default is sim800c
 	thisModule = &ModuleProduce{
 		Type:     SIM800C,
-		ModCmd:   modCmd_SIM800C,
+		ModCmd:   &modCmd_SIM800C,
 		UrlVer:   SERVER_Cipher,
 		TestFlag: 0,
 	}
@@ -113,21 +111,21 @@ func module_reinit(module Module_cfg) {
 	if module == SIM800C {
 		thisModule = &ModuleProduce{
 			Type:     module,
-			ModCmd:   modCmd_SIM800C,
+			ModCmd:   &modCmd_SIM800C,
 			UrlVer:   SERVER_Cipher,
 			TestFlag: 0,
 		}
 	} else if module == EC20 {
 		thisModule = &ModuleProduce{
 			Type:     module,
-			ModCmd:   modCmd_EC20,
+			ModCmd:   &modCmd_EC20,
 			UrlVer:   SERVER_PLAIN_v0,
 			TestFlag: 0,
 		}
 	} else if module == EC20_AUTO {
 		thisModule = &ModuleProduce{
 			Type:     module,
-			ModCmd:   modCmd_EC20,
+			ModCmd:   &modCmd_EC20,
 			UrlVer:   SERVER_PLAIN_v0,
 			TestFlag: 0,
 		}
@@ -135,31 +133,31 @@ func module_reinit(module Module_cfg) {
 		// default is sim800c
 		thisModule = &ModuleProduce{
 			Type:     module,
-			ModCmd:   modCmd_SIM800C,
+			ModCmd:   &modCmd_SIM800C,
 			UrlVer:   SERVER_Cipher,
 			TestFlag: 0,
 		}
 
 		/* test */
-		if MODULE_TEST {
-			if module == EC20_PT {
+		if gConfig.Testflag == 1 {
+			if module == EC20_TP {
 				thisModule = &ModuleProduce{
 					Type:     module,
-					ModCmd:   modCmd_EC20,
+					ModCmd:   &modCmd_EC20,
 					UrlVer:   SERVER_PLAIN_v0,
 					TestFlag: 1,
 				}
-			} else if module == EC20_CT1 {
+			} else if module == EC20_TC1 {
 				thisModule = &ModuleProduce{
 					Type:     module,
-					ModCmd:   modCmd_EC20,
+					ModCmd:   &modCmd_EC20,
 					UrlVer:   SERVER_Cipher_v1,
 					TestFlag: 1,
 				}
-			} else if module == EC20_CT3 {
+			} else if module == EC20_TC3 {
 				thisModule = &ModuleProduce{
 					Type:     module,
-					ModCmd:   modCmd_EC20,
+					ModCmd:   &modCmd_EC20,
 					UrlVer:   SERVER_Cipher_v3,
 					TestFlag: 1,
 				}

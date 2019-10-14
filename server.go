@@ -21,20 +21,7 @@ const (
 	SERVER_MAX       = 4
 )
 
-// plaintext
-const serverPlainUrl string = "https://rdp.showmac.cn/api/v1/profile/clear/get"
-
-// ciphertext
-const serverCipherUrl string = "https://ldp.showmac.cn/api/openluat/profile"
-const serverCipherUrlV1 string = "https://rdp.showmac.cn/api/v1/profile/get"
-const serverCipherUrlV3 string = "https://rdp.showmac.cn/api/v3/profile/get"
-
-var serverUrl = [SERVER_MAX]string{
-	serverPlainUrl,
-	serverCipherUrl,
-	serverCipherUrlV1,
-	serverCipherUrlV3,
-}
+var serverUrl [SERVER_MAX]string
 
 type devReqCipherDataV1 struct {
 	Ver    string `json:"version"`
@@ -118,6 +105,13 @@ func reqSimServer(version int, req interface{}, resp_data *[]byte) int {
 	}
 
 	return 0
+}
+
+func server_init() {
+	serverUrl[SERVER_PLAIN_v0] = gConfig.Server.Plain_url
+	serverUrl[SERVER_Cipher] = gConfig.Server.Cipher_url
+	serverUrl[SERVER_Cipher_v1] = gConfig.Server.Cipherv1_url
+	serverUrl[SERVER_Cipher_v3] = gConfig.Server.Cipherv3_url
 }
 
 func test_server_main() {

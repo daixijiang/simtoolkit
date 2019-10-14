@@ -13,12 +13,6 @@ import (
 )
 
 const TOKEN_MAX = 100
-const TOKEN_FILE_CMCC string = "./token.cfg"
-const TOKEN_FILE_UNI string = "./token_uni.cfg"
-const TOKEN_FILE_TEL string = "./token_tel.cfg"
-const VLOG_FILE_DAFAULT string = "./vsimkit.log"
-const VLOG_LEVEL_DAFAULT string = "info"
-const VLOG_MAXDAY_DAFAULT = 7
 
 type simToken struct {
 	Token   string
@@ -34,19 +28,15 @@ type simTokenStat struct {
 
 var myTokenStat [OPER_MAX]simTokenStat
 
-func log_init() {
-	vlog.InitLog("file", VLOG_FILE_DAFAULT, VLOG_LEVEL_DAFAULT, VLOG_MAXDAY_DAFAULT)
-}
-
 func token_init() {
 	for index := 0; index < OPER_MAX; index++ {
 		myTokenStat[index].total = 0
 		myTokenStat[index].current = 0
 	}
 
-	loadTokenCfg(TOKEN_FILE_CMCC, OPER_CN_MOBILE)
-	loadTokenCfg(TOKEN_FILE_UNI, OPER_CN_UNICOM)
-	loadTokenCfg(TOKEN_FILE_TEL, OPER_CN_TELECOM)
+	loadTokenCfg(gConfig.Token.Cmcc_file, OPER_CN_MOBILE)
+	loadTokenCfg(gConfig.Token.Uni_file, OPER_CN_UNICOM)
+	loadTokenCfg(gConfig.Token.Tel_file, OPER_CN_TELECOM)
 }
 
 func loadTokenCfg(filename string, oper int) {

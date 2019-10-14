@@ -15,9 +15,7 @@ import (
 const head_ens192 string = "A0D60000D002FD5646696C6531312E62696E000000"
 const head_ens64 string = "A0D600015002FD5646696C6531312E62696E000000"
 
-func module_ec20_init() *[Module_TAB_AT_CMD_MAX]ModCmdTable {
-	var myModCmd [Module_TAB_AT_CMD_MAX]ModCmdTable
-
+func module_ec20_init(myModCmd *[Module_TAB_AT_CMD_MAX]ModCmdTable) {
 	////cmd for prepare
 	myModCmd[Module_CMD1_SYSVER] = ModCmdTable{
 		Module_CMD1_SYSVER,
@@ -164,8 +162,6 @@ func module_ec20_init() *[Module_TAB_AT_CMD_MAX]ModCmdTable {
 		"AT+CSIM=12,\"00B001090101\"",
 		serial_atget_info,
 	}
-
-	return &myModCmd
 }
 
 /* "AT+CCID\r\r\n
@@ -183,7 +179,7 @@ func ec20_get_ccid(cmdid int, cmdstr string, portid int, s *serial.Port, reply *
 	pos2 := strings.Index(resp, "\r\n\r\nOK")
 	if pos1 >= 0 && pos2 >= 0 {
 		posBgn := sublen + len("\r\r\n") + len("+CCID: ")
-		posEnd := pos2 - 1
+		posEnd := pos2
 		if posEnd < posBgn {
 			posEnd = posBgn
 		}

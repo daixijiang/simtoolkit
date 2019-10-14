@@ -14,9 +14,7 @@ import (
 
 const head_ens128 string = "A0D600005001130303030303030303030303030303"
 
-func module_sim800c_init() *[Module_TAB_AT_CMD_MAX]ModCmdTable {
-	var myModCmd [Module_TAB_AT_CMD_MAX]ModCmdTable
-
+func module_sim800c_init(myModCmd *[Module_TAB_AT_CMD_MAX]ModCmdTable) {
 	////cmd for prepare
 	myModCmd[Module_CMD1_SYSVER] = ModCmdTable{
 		Module_CMD1_SYSVER,
@@ -103,8 +101,6 @@ func module_sim800c_init() *[Module_TAB_AT_CMD_MAX]ModCmdTable {
 		"AT+COPS?",
 		serial_atget_info,
 	}
-
-	return &myModCmd
 }
 
 /* "AT+CCID\r\r\n
@@ -122,7 +118,7 @@ func sim800c_get_ccid(cmdid int, cmdstr string, portid int, s *serial.Port, repl
 	pos2 := strings.Index(resp, "\r\n\r\nOK")
 	if pos1 >= 0 && pos2 >= 0 {
 		posBgn := sublen + len("\r\r\n") + len("+CCID: ")
-		posEnd := pos2 - 1
+		posEnd := pos2
 		if posEnd < posBgn {
 			posEnd = posBgn
 		}

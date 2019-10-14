@@ -80,7 +80,7 @@ func (pg *portGroup) showUI(w *nucular.Window) {
 	pg.showMenuBar(w)
 	w.Row(5).Dynamic(1)
 
-	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
 		pg.showPortG(w, port_id)
 	}
 
@@ -131,15 +131,15 @@ func (pg *portGroup) showMenuBar(w *nucular.Window) {
 			newmodule = EC20_AUTO
 		}
 
-		if MODULE_TEST {
-			if w.OptionText("EC20_PT", newmodule == EC20_PT) {
-				newmodule = EC20_PT
+		if gConfig.Testflag == 1 {
+			if w.OptionText("EC20_TP", newmodule == EC20_TP) {
+				newmodule = EC20_TP
 			}
-			if w.OptionText("EC20_CT1", newmodule == EC20_CT1) {
-				newmodule = EC20_CT1
+			if w.OptionText("EC20_TC1", newmodule == EC20_TC1) {
+				newmodule = EC20_TC1
 			}
-			if w.OptionText("EC20_CT3", newmodule == EC20_CT3) {
-				newmodule = EC20_CT3
+			if w.OptionText("EC20_TC3", newmodule == EC20_TC3) {
+				newmodule = EC20_TC3
 			}
 		}
 
@@ -288,7 +288,7 @@ func (pg *portGroup) btnHandleAll(w *nucular.Window, oper int, check bool) {
 	vlog.Info("start %s all", myBtnTab[oper].BtnStr)
 	taskChan := make(chan PortResult)
 	taskCnt := 0
-	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
 		if (pg.Checkbox[port_id] || !check) && (portIsOK(port_id) != 0) {
 			taskCnt++
 			go pg.setTaskBtn(oper, port_id, taskChan)
@@ -302,15 +302,15 @@ func (pg *portGroup) btnExit(w *nucular.Window) {
 }
 
 func (pg *portGroup) btnLoadToken(w *nucular.Window) {
-	loadTokenCfg(TOKEN_FILE_CMCC, OPER_CN_MOBILE)
-	loadTokenCfg(TOKEN_FILE_UNI, OPER_CN_UNICOM)
-	loadTokenCfg(TOKEN_FILE_TEL, OPER_CN_TELECOM)
+	loadTokenCfg(gConfig.Token.Cmcc_file, OPER_CN_MOBILE)
+	loadTokenCfg(gConfig.Token.Uni_file, OPER_CN_UNICOM)
+	loadTokenCfg(gConfig.Token.Tel_file, OPER_CN_TELECOM)
 }
 
 func (pg *portGroup) btnRefreshPort(w *nucular.Window) {
 	pg.btnHandleAll(w, Btn_CMD_Close, false)
 
-	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
 		pg.CurrentPortId[port_id] = 0
 	}
 
@@ -353,7 +353,7 @@ func (pg *portGroup) checkBox(w *nucular.Window) bool {
 	cntCheck := 0
 	portlist := ""
 
-	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
+	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
 		if pg.Checkbox[port_id] {
 			cntCheck++
 			if portIsOK(port_id) == 0 {

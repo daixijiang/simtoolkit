@@ -14,18 +14,7 @@ import (
 	"github.com/tarm/serial"
 )
 
-const APP_AT_OK string = "AT"
-
 /* Port struct */
-const SERIAL_PORT_MAX = 8
-
-const SERIAL_TIMEOUT = 3000
-const SERIAL_TIMEWAIT = 500
-
-var COM_RNAME_PREFIX string
-var COM_SNAME_PREFIX string
-var at_reply [SERIAL_PORT_MAX]string
-
 const (
 	PORT_STATUS_CLOSE   = 0
 	PORT_STATUS_OPEN    = 1
@@ -48,7 +37,13 @@ type device_info struct {
 	servde  string
 }
 
+const SERIAL_PORT_MAX = 16
+const APP_AT_OK string = "AT"
+
+var COM_RNAME_PREFIX string
+var COM_SNAME_PREFIX string
 var serial_port [SERIAL_PORT_MAX]serial_port_info
+var at_reply [SERIAL_PORT_MAX]string
 var ports_list []string
 
 /* Port end */
@@ -78,9 +73,9 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string, millsecond in
 	}
 
 	if millsecond == 0 {
-		millsecond = SERIAL_TIMEWAIT
-	} else if millsecond > SERIAL_TIMEOUT {
-		millsecond = SERIAL_TIMEOUT
+		millsecond = gConfig.Serial.Serial_timewait
+	} else if millsecond > gConfig.Serial.Serial_timeout {
+		millsecond = gConfig.Serial.Serial_timeout
 	}
 	time.Sleep(time.Duration(millsecond) * time.Millisecond)
 
@@ -111,7 +106,7 @@ func serialOpen(portid int, strCom string) int {
 		serial_port[portid].strInfo = fmt.Sprintf("%s", "o")
 		return 0
 	}
-	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: SERIAL_TIMEOUT}
+	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: 3000}
 	s, err := serial.OpenPort(c)
 	if err != nil {
 		vlog.Error("Port[%d] => open %s failed: %s", portid, strCom, err)
@@ -131,7 +126,7 @@ func serialOpen(portid int, strCom string) int {
 
 func serialATsendCmd(portid int, strCom string, strCmd string) {
 	vlog.Info("Port[%d] => AT send cmd[%s] port %s", portid, strCmd, strCom)
-	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd, SERIAL_TIMEWAIT)
+	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd, gConfig.Serial.Serial_timewait)
 	vlog.Info("%s", resp)
 }
 
@@ -160,7 +155,7 @@ func serial_atget_info(cmdid int, cmdstr string, portid int, s *serial.Port, rep
 }
 
 func serial_atget2_info(cmdid int, cmdstr string, portid int, s *serial.Port, reply *string) int {
-	resp := serialWriteAndEcho(portid, s, cmdstr, SERIAL_TIMEOUT)
+	resp := serialWriteAndEcho(portid, s, cmdstr, gConfig.Serial.Serial_timeout)
 	rs := []byte(resp)
 	length := len(rs)
 	sublen := len(cmdstr)
