@@ -28,6 +28,8 @@ import (
     "tel_file": "token_tel.cfg"
   },
   "server": {
+    "conn_timeout": 25,
+    "rw_timeout": 20,
     "plain_url": "https://rdp.showmac.cn/api/v1/profile/clear/get",
     "cipher_url": "https://ldp.showmac.cn/api/openluat/profile",
     "cipherv1_url": "https://rdp.showmac.cn/api/v1/profile/get",
@@ -35,14 +37,14 @@ import (
   },
   "serial": {
     "serial_max": 10,
-    "serial_timeout": 3000,
-    "serial_timewait": 200
+    "cmd_timeout": 3,
+    "cmd_timewait_ms": 0.2
   },
   "produce": {
-    "timeout_cold_reset": 1,
-    "timeout_hot_reset": 1,
-    "timeout_creg": 3,
-    "timeout_common": 1
+    "cold_reset_timeout": 1,
+    "hot_reset_timeout": 1,
+    "creg_timeout": 3,
+    "common_timeout": 1
   }
 }
 --------------------------------------------------------
@@ -65,6 +67,8 @@ uni_file = token_uni.cfg
 tel_file = token_tel.cfg
 
 [server]
+conn_timeout = 25
+rw_timeout = 20
 plain_url = https://rdp.showmac.cn/api/v1/profile/clear/get
 cipher_url = https://ldp.showmac.cn/api/openluat/profile
 cipherv1_url = https://rdp.showmac.cn/api/v1/profile/get
@@ -72,14 +76,14 @@ cipherv3_url = https://rdp.showmac.cn/api/v3/profile/get
 
 [serial]
 serial_max = 8
-serial_timeout = 3000
-serial_timewait = 200
+cmd_timeout = 3
+cmd_timewait_ms = 200
 
 [produce]
-timeout_cold_reset = 0
-timeout_hot_reset = 0
-timeout_creg = 3
-timeout_common = 1
+cold_reset_timeout = 0
+hot_reset_timeout = 0
+creg_timeout = 3
+common_timeout = 1
 --------------------------------------------------------
 */
 
@@ -100,8 +104,8 @@ type config_token struct {
 }
 
 type config_server struct {
-	Conntimeout  int    `default:"25"`
-	Rwtimeout    int    `default:"20"`
+	Conn_timeout int    `default:"25"`
+	Rw_timeout   int    `default:"20"`
 	Plain_url    string `default:"https://rdp.showmac.cn/api/v1/profile/clear/get"`
 	Cipher_url   string `default:"https://ldp.showmac.cn/api/openluat/profile"`
 	Cipherv1_url string `default:"https://rdp.showmac.cn/api/v1/profile/get"`
@@ -110,15 +114,15 @@ type config_server struct {
 
 type config_serial struct {
 	Serial_max      int `default:"8"`
-	Serial_timeout  int `default:"3000"`
-	Serial_timewait int `default:"200"`
+	Cmd_timeout     int `default:"3"`
+	Cmd_timewait_ms int `default:"200"`
 }
 
 type config_produce struct {
-	Timeout_cold_reset int `default:"30"`
-	Timeout_hot_reset  int `default:"5"`
-	Timeout_creg       int `default:"3"`
-	Timeout_common     int `default:"1"`
+	Cold_reset_timeout int `default:"30"`
+	Hot_reset_timeout  int `default:"5"`
+	Creg_timeout       int `default:"3"`
+	Common_timeout     int `default:"1"`
 }
 
 type SysConfig struct {
@@ -152,8 +156,8 @@ func config_print_value(gConfig *SysConfig) {
 	fmt.Printf("token.uni_file:         \t%s\n", gConfig.Token.Uni_file)
 	fmt.Printf("token.tel_file:         \t%s\n", gConfig.Token.Tel_file)
 
-	fmt.Printf("server.conntimeout:     \t%d\n", gConfig.Server.Conntimeout)
-	fmt.Printf("server.rwtimeout:       \t%d\n", gConfig.Server.Rwtimeout)
+	fmt.Printf("server.conn_timeout:     \t%d\n", gConfig.Server.Conn_timeout)
+	fmt.Printf("server.rw_timeout:       \t%d\n", gConfig.Server.Rw_timeout)
 	if false {
 		fmt.Printf("server.plain_url:       \t%s\n", gConfig.Server.Plain_url)
 		fmt.Printf("server.cipher_url:      \t%s\n", gConfig.Server.Cipher_url)
@@ -162,13 +166,13 @@ func config_print_value(gConfig *SysConfig) {
 	}
 
 	fmt.Printf("serial.serial_max:      \t%d\n", gConfig.Serial.Serial_max)
-	fmt.Printf("serial.serial_timeout:  \t%d\n", gConfig.Serial.Serial_timeout)
-	fmt.Printf("serial.serial_timewait: \t%d\n", gConfig.Serial.Serial_timewait)
+	fmt.Printf("serial.cmd_timeout:     \t%d\n", gConfig.Serial.Cmd_timeout)
+	fmt.Printf("serial.cmd_timewait_ms: \t%d\n", gConfig.Serial.Cmd_timewait_ms)
 
-	fmt.Printf("produce.timeout_cold_reset: \t%d\n", gConfig.Produce.Timeout_cold_reset)
-	fmt.Printf("produce.timeout_hot_reset: \t%d\n", gConfig.Produce.Timeout_hot_reset)
-	fmt.Printf("produce.timeout_creg:   \t%d\n", gConfig.Produce.Timeout_creg)
-	fmt.Printf("produce.timeout_common: \t%d\n", gConfig.Produce.Timeout_common)
+	fmt.Printf("produce.cold_reset_timeout: \t%d\n", gConfig.Produce.Cold_reset_timeout)
+	fmt.Printf("produce.hot_reset_timeout: \t%d\n", gConfig.Produce.Hot_reset_timeout)
+	fmt.Printf("produce.creg_timeout:   \t%d\n", gConfig.Produce.Creg_timeout)
+	fmt.Printf("produce.common_timeout: \t%d\n", gConfig.Produce.Common_timeout)
 
 	fmt.Printf("---------------------------------\n")
 }

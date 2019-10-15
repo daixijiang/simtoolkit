@@ -75,11 +75,11 @@ func checkerr(err error, code int, opername string) int {
 
 func TimeoutDialer() func(net, addr string) (c net.Conn, err error) {
 	return func(netw, addr string) (net.Conn, error) {
-		conn, err := net.DialTimeout(netw, addr, time.Duration(gConfig.Server.Conntimeout)*time.Second)
+		conn, err := net.DialTimeout(netw, addr, time.Duration(gConfig.Server.Conn_timeout)*time.Second)
 		if err != nil {
 			return nil, err
 		}
-		conn.SetDeadline(time.Now().Add(time.Duration(gConfig.Server.Rwtimeout) * time.Second))
+		conn.SetDeadline(time.Now().Add(time.Duration(gConfig.Server.Rw_timeout) * time.Second))
 		return conn, nil
 	}
 }
