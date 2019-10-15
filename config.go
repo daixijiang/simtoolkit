@@ -38,11 +38,11 @@ import (
   "serial": {
     "serial_max": 10,
     "cmd_timeout": 3,
-    "cmd_timewait_ms": 0.2
+    "cmd_timewait_ms": 500
   },
   "produce": {
-    "cold_reset_timeout": 1,
-    "hot_reset_timeout": 1,
+    "cold_reset_timeout": 0,
+    "hot_reset_timeout": 0,
     "creg_timeout": 3,
     "common_timeout": 1
   }
@@ -77,7 +77,7 @@ cipherv3_url = https://rdp.showmac.cn/api/v3/profile/get
 [serial]
 serial_max = 8
 cmd_timeout = 3
-cmd_timewait_ms = 200
+cmd_timewait_ms = 500
 
 [produce]
 cold_reset_timeout = 0
@@ -115,7 +115,7 @@ type config_server struct {
 type config_serial struct {
 	Serial_max      int `default:"8"`
 	Cmd_timeout     int `default:"3"`
-	Cmd_timewait_ms int `default:"200"`
+	Cmd_timewait_ms int `default:"500"`
 }
 
 type config_produce struct {

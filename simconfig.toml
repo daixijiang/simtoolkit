@@ -1,11 +1,11 @@
 verbose            = 1
-#simfake            = 1
-#module             = "ec20"
+simfake            = 1
+module             = "ec20"
 
 [serial]
 serial_max         = 8
 cmd_timeout        = 3
-cmd_timewait_ms    = 200
+cmd_timewait_ms    = 500
 
 [produce]
 cold_reset_timeout = 0
