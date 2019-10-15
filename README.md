@@ -20,3 +20,19 @@ https://github.com/nskygit/simtoolkit
 
     open serial; produce; check  
 
+**3 config (simconfig.toml)**
+
+    verbose            = 1
+    #simfake            = 1
+    module             = "ec20"
+
+    [serial]
+    serial_max         = 8
+    serial_timeout     = 3000
+    serial_timewait    = 200
+
+    [produce]
+    timeout_cold_reset = 0
+    timeout_hot_reset  = 0
+    timeout_creg       = 3
+    timeout_common     = 1
