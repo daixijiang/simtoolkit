@@ -9,7 +9,9 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"net/http"
+	"time"
 	"vlog"
 )
 
@@ -71,6 +73,17 @@ func checkerr(err error, code int, opername string) int {
 	return 0
 }
 
+func TimeoutDialer() func(net, addr string) (c net.Conn, err error) {
+	return func(netw, addr string) (net.Conn, error) {
+		conn, err := net.DialTimeout(netw, addr, time.Duration(gConfig.Server.Conntimeout)*time.Second)
+		if err != nil {
+			return nil, err
+		}
+		conn.SetDeadline(time.Now().Add(time.Duration(gConfig.Server.Rwtimeout) * time.Second))
+		return conn, nil
+	}
+}
+
 func reqSimServer(version int, req interface{}, resp_data *[]byte) int {
 	var resp *http.Response
 
@@ -85,6 +98,7 @@ func reqSimServer(version int, req interface{}, resp_data *[]byte) int {
 	tr := &http.Transport{
 		TLSClientConfig:    &tls.Config{InsecureSkipVerify: true},
 		DisableCompression: true,
+		Dial:               TimeoutDialer(),
 	}
 
 	client := &http.Client{Transport: tr}

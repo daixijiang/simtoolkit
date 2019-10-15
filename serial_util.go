@@ -106,7 +106,7 @@ func serialOpen(portid int, strCom string) int {
 		serial_port[portid].strInfo = fmt.Sprintf("%s", "o")
 		return 0
 	}
-	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: 3000}
+	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: time.Duration(gConfig.Serial.Serial_timeout)}
 	s, err := serial.OpenPort(c)
 	if err != nil {
 		vlog.Error("Port[%d] => open %s failed: %s", portid, strCom, err)

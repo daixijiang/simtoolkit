@@ -5,6 +5,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/tarm/serial"
 	"vlog"
 )
@@ -97,15 +98,23 @@ func module_init() {
 	// add list of module init
 
 	// default is sim800c
-	thisModule = &ModuleProduce{
-		Type:   SIM800C,
-		ModCmd: &modCmd_SIM800C,
-		UrlVer: SERVER_Cipher,
+	module := SIM800C
+	if gConfig.Module == "sim800c" {
+		module = SIM800C
+	} else if gConfig.Module == "ec20" {
+		module = EC20
+	} else if gConfig.Module == "ec20_auto" {
+		module = EC20_AUTO
 	}
+	module_reinit(module)
+}
 
+func module_get() Module_cfg {
+	return thisModule.Type
 }
 
 func module_reinit(module Module_cfg) {
+	fmt.Printf("module[%d] %s, simfake %d\n", module, gConfig.Module, gConfig.Simfake)
 	if module == SIM800C {
 		thisModule = &ModuleProduce{
 			Type:   module,

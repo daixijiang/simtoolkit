@@ -58,7 +58,7 @@ func newportGroup() (pg *portGroup) {
 
 	pg.Message = ""
 	pg.Theme = mytheme
-	pg.Module = SIM800C
+	pg.Module = module_get()
 	pg.ComboPorts = ports_list
 
 	for port_id := 0; port_id < SERIAL_PORT_MAX; port_id++ {
