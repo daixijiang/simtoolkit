@@ -75,6 +75,8 @@ var modCmd_SIM800C [Module_TAB_AT_CMD_MAX]ModCmdTable
 var thisModule *ModuleProduce
 
 func (mp *ModuleProduce) DoComCMD(cmdid int, portid int, result *string) int {
+	*result = ""
+
 	if cmdid > Module_TAB_AT_CMD_MAX {
 		return -1
 	}
