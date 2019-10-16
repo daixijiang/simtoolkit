@@ -5,8 +5,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/koding/multiconfig"
 	"vlog"
+	"github.com/koding/multiconfig"
 )
 
 /*
@@ -38,7 +38,7 @@ import (
   "serial": {
     "serial_max": 10,
     "cmd_timeout": 3,
-    "cmd_timewait_ms": 500
+    "cmd_timewait": 0.5
   },
   "produce": {
     "cold_reset_timeout": 0,
@@ -77,7 +77,7 @@ cipherv3_url = https://rdp.showmac.cn/api/v3/profile/get
 [serial]
 serial_max = 8
 cmd_timeout = 3
-cmd_timewait_ms = 500
+cmd_timewait = 0.5
 
 [produce]
 cold_reset_timeout = 0
@@ -113,9 +113,9 @@ type config_server struct {
 }
 
 type config_serial struct {
-	Serial_max      int `default:"8"`
-	Cmd_timeout     int `default:"3"`
-	Cmd_timewait_ms int `default:"500"`
+	Serial_max   int     `default:"8"`
+	Cmd_timeout  int     `default:"3"`
+	Cmd_timewait float64 `default:"0.5"`
 }
 
 type config_produce struct {
@@ -167,7 +167,7 @@ func config_print_value(gConfig *SysConfig) {
 
 	fmt.Printf("serial.serial_max:      \t%d\n", gConfig.Serial.Serial_max)
 	fmt.Printf("serial.cmd_timeout:     \t%d\n", gConfig.Serial.Cmd_timeout)
-	fmt.Printf("serial.cmd_timewait_ms: \t%d\n", gConfig.Serial.Cmd_timewait_ms)
+	fmt.Printf("serial.cmd_timewait:    \t%f\n", gConfig.Serial.Cmd_timewait)
 
 	fmt.Printf("produce.cold_reset_timeout: \t%d\n", gConfig.Produce.Cold_reset_timeout)
 	fmt.Printf("produce.hot_reset_timeout: \t%d\n", gConfig.Produce.Hot_reset_timeout)

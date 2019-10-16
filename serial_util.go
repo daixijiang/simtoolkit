@@ -73,8 +73,8 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string, millsecond in
 	}
 
 	if millsecond == 0 {
-		millsecond = gConfig.Serial.Cmd_timewait_ms
-	} else if millsecond > gConfig.Serial.Cmd_timeout*1000 {
+		millsecond = int(gConfig.Serial.Cmd_timewait * 1000)
+	} else if millsecond > gConfig.Serial.Cmd_timeout * 1000 {
 		millsecond = gConfig.Serial.Cmd_timeout * 1000
 	}
 	time.Sleep(time.Duration(millsecond) * time.Millisecond)
@@ -114,7 +114,7 @@ func serialOpen(portid int, strCom string) int {
 	}
 	serial_port[portid].portname = strCom
 
-	resp := serialWriteAndEcho(portid, s, APP_AT_OK, 0)
+	resp := serialWriteAndEcho(portid, s, APP_AT_OK, 100)
 	vlog.Info("%s", resp)
 
 	serial_port[portid].port_status = PORT_STATUS_OPEN
@@ -126,7 +126,7 @@ func serialOpen(portid int, strCom string) int {
 
 func serialATsendCmd(portid int, strCom string, strCmd string) {
 	vlog.Info("Port[%d] => AT send cmd[%s] port %s", portid, strCmd, strCom)
-	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd, gConfig.Serial.Cmd_timewait_ms)
+	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd, int(gConfig.Serial.Cmd_timewait * 1000))
 	vlog.Info("%s", resp)
 }
 
@@ -155,7 +155,7 @@ func serial_atget_info(cmdid int, cmdstr string, portid int, s *serial.Port, rep
 }
 
 func serial_atget2_info(cmdid int, cmdstr string, portid int, s *serial.Port, reply *string) int {
-	resp := serialWriteAndEcho(portid, s, cmdstr, gConfig.Serial.Cmd_timeout*1000)
+	resp := serialWriteAndEcho(portid, s, cmdstr, gConfig.Serial.Cmd_timeout * 1000)
 	rs := []byte(resp)
 	length := len(rs)
 	sublen := len(cmdstr)
