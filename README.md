@@ -2,7 +2,8 @@
 sim produce tool (daixijiang@gmail.com)  
 https://github.com/nskygit/simtoolkit
 
-![image](https://github.com/nskygit/simtoolkit/raw/master/simtoolkit.png)
+![image](https://github.com/nskygit/simtoolkit/raw/master/simtoolkit_nucular.png)
+![image](https://github.com/nskygit/simtoolkit/raw/master/simtoolkit_walk.png)
 
 ## Requirements
 * **GO**
