@@ -5,8 +5,8 @@ package main
 
 import (
 	"fmt"
-	"vlog"
 	"github.com/koding/multiconfig"
+	"vlog"
 )
 
 /*

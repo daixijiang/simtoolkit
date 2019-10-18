@@ -74,7 +74,7 @@ func serialWriteAndEcho(portid int, s *serial.Port, strCmd string, millsecond in
 
 	if millsecond == 0 {
 		millsecond = int(gConfig.Serial.Cmd_timewait * 1000)
-	} else if millsecond > gConfig.Serial.Cmd_timeout * 1000 {
+	} else if millsecond > gConfig.Serial.Cmd_timeout*1000 {
 		millsecond = gConfig.Serial.Cmd_timeout * 1000
 	}
 	time.Sleep(time.Duration(millsecond) * time.Millisecond)
@@ -103,7 +103,7 @@ func serialOpen(portid int, strCom string) int {
 	vlog.Info("Port[%d] => open port %s", portid, strCom)
 
 	if serial_port[portid].port_status != PORT_STATUS_CLOSE {
-		serial_port[portid].strInfo = fmt.Sprintf("%s", "o")
+		serial_port[portid].strInfo = fmt.Sprintf("%s", "O")
 		return 0
 	}
 	c := &serial.Config{Name: strCom, Baud: 115200, ReadTimeout: time.Duration(gConfig.Serial.Cmd_timeout * 1000)}
@@ -119,15 +119,16 @@ func serialOpen(portid int, strCom string) int {
 
 	serial_port[portid].port_status = PORT_STATUS_OPEN
 	serial_port[portid].comPort = s
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "o")
+	serial_port[portid].strInfo = fmt.Sprintf("%s", "O")
 	serial_port[portid].devInfo = device_info{}
 	return 0
 }
 
-func serialATsendCmd(portid int, strCom string, strCmd string) {
+func serialATsendCmd(portid int, strCom string, strCmd string) string {
 	vlog.Info("Port[%d] => AT send cmd[%s] port %s", portid, strCmd, strCom)
-	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd, int(gConfig.Serial.Cmd_timewait * 1000))
+	resp := serialWriteAndEcho(portid, serial_port[portid].comPort, strCmd, int(gConfig.Serial.Cmd_timewait*1000))
 	vlog.Info("%s", resp)
+	return resp
 }
 
 /* general get info */
@@ -155,7 +156,7 @@ func serial_atget_info(cmdid int, cmdstr string, portid int, s *serial.Port, rep
 }
 
 func serial_atget2_info(cmdid int, cmdstr string, portid int, s *serial.Port, reply *string) int {
-	resp := serialWriteAndEcho(portid, s, cmdstr, gConfig.Serial.Cmd_timeout * 1000)
+	resp := serialWriteAndEcho(portid, s, cmdstr, gConfig.Serial.Cmd_timeout*1000)
 	rs := []byte(resp)
 	length := len(rs)
 	sublen := len(cmdstr)
@@ -179,7 +180,7 @@ func serialClose(portid int) int {
 		serial_port[portid].port_status = PORT_STATUS_CLOSE
 		serial_port[portid] = serial_port_info{}
 	}
-	serial_port[portid].strInfo = fmt.Sprintf("%s", "")
+	serial_port[portid].strInfo = fmt.Sprintf("%s", "*")
 	return 0
 }
 

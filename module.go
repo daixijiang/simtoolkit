@@ -54,6 +54,7 @@ const (
 	EC20_TP
 	EC20_TC1
 	EC20_TC3
+	MODULE_MAX
 )
 
 type cmdHandler func(cmdid int, cmdstr string, portid int, s *serial.Port, reply *string) int
@@ -116,7 +117,7 @@ func module_get() Module_cfg {
 }
 
 func module_reinit(module Module_cfg) {
-	fmt.Printf("module[%d] %s, simfake %d\n", module, gConfig.Module, gConfig.Simfake)
+	fmt.Printf("module[%d], simfake %d\n", module, gConfig.Simfake)
 	if module == SIM800C {
 		thisModule = &ModuleProduce{
 			Type:   module,
