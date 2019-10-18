@@ -17,6 +17,7 @@ import (
   "verbose": 0,
   "module": "sim800c",
   "simfake": 0,
+  "uistyle": "walk",
   "log": {
     "level": "info",
     "file": "vsimkit.log",
@@ -55,6 +56,7 @@ scaling = 1.5
 verbose = 1
 #module = sim800c
 #simfake = 1
+uistyle = walk
 
 [log]
 level = info
@@ -130,6 +132,7 @@ type SysConfig struct {
 	Verbose int     `default:"0"`
 	Simfake int     `default:"0"`
 	Module  string  `default:"sim800c"`
+	UIstyle string  `default:"walk"`
 	Log     config_log
 	Token   config_token
 	Server  config_server
@@ -146,6 +149,7 @@ func config_print_value(gConfig *SysConfig) {
 	fmt.Printf("verbose:                \t%d\n", gConfig.Verbose)
 	fmt.Printf("simfake:                \t%d\n", gConfig.Simfake)
 	fmt.Printf("module:                 \t%s\n", gConfig.Module)
+	fmt.Printf("uistyle:                \t%s\n", gConfig.UIstyle)
 
 	fmt.Printf("log.level:              \t%s\n", gConfig.Log.Level)
 	fmt.Printf("log.file:               \t%s\n", gConfig.Log.File)

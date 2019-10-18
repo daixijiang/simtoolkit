@@ -1,6 +1,7 @@
 verbose            = 1
-#simfake            = 1
+#simfake           = 1
 module             = "ec20"
+uistyle            = "nucular"
 
 [serial]
 serial_max         = 8

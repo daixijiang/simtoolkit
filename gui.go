@@ -6,298 +6,226 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"vlog"
-
-	"github.com/lxn/walk"
-	. "github.com/lxn/walk/declarative"
 )
 
-type portGroup struct {
-	MainWindow *walk.MainWindow
-	portText   [SERIAL_PORT_MAX]*walk.LineEdit
-	portCombo  [SERIAL_PORT_MAX]*walk.ComboBox
-	modRadiuo  [MODULE_MAX]*walk.RadioButton
+const (
+	Btn_CMD_Produce = 0
+	Btn_CMD_CheckDo = 1
+	Btn_CMD_Close   = 2
+	Btn_CMD_MAX     = 3
+)
 
+type btnHandler func(portid int) int
+
+type BtnDoTable struct {
+	BtnID   int
+	BtnStr  string
+	BtnFunc btnHandler
+}
+
+var myBtnTab [Btn_CMD_MAX]BtnDoTable
+
+type PortResult struct {
+	Portid int
+	Oper   int
+	Result int
+}
+
+type TBaseInfo struct {
 	Module   Module_cfg
 	Message  string
 	PortList []string
 	Checkbox [SERIAL_PORT_MAX]bool
+
+	nui *nucularUI
+	wui *walkUI
 }
 
-var defColor = walk.RGB(255, 255, 0)
-var errColor = walk.RGB(255, 0, 0)
-var okColor = walk.RGB(255, 255, 0)
+var sysNeedSync = false
 
 //////////////////////////////////////////////////////////////////////////////////
+// show handle
 
-func (pg *portGroup) showUI() {
-	portWidget := make([]Widget, 0)
-	portWidget = append(portWidget, pg.showBanner())
-	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
-		portWidget = append(portWidget, pg.showPortG(port_id))
-	}
-	portWidget = append(portWidget, pg.showBtnG())
+func newTBaseInfo() (tbi *TBaseInfo) {
+	newbi := &TBaseInfo{}
+	newbi.Module = module_get()
+	newbi.Message = ""
+	newbi.PortList = ports_list
 
-	if err := (MainWindow{
-		AssignTo: &pg.MainWindow,
-		Title:    szTitle,
-		//Icon: "./main.ico",
-		MinSize: Size{600, 400},
-		Font:    Font{Family: "", PointSize: 10},
-		Layout:  VBox{MarginsZero: true},
+	myBtnTab[Btn_CMD_Produce] = BtnDoTable{Btn_CMD_Produce, "produce", serialProduce}
+	myBtnTab[Btn_CMD_CheckDo] = BtnDoTable{Btn_CMD_CheckDo, "checkdo", serialCheckDo}
+	myBtnTab[Btn_CMD_Close] = BtnDoTable{Btn_CMD_Close, "close", serialClose}
 
-		MenuItems: pg.showMenu(),
-		Children:  portWidget,
-	}.Create()); err != nil {
-		vlog.Error("MainWindow create: %s", err)
-	}
-
-	pg.modRadiuo[pg.Module].SetChecked(true)
-	pg.MainWindow.Run()
-}
-
-func (pg *portGroup) showMenu() []MenuItem {
-	return []MenuItem{
-		Menu{
-			Text: "&File",
-			Items: []MenuItem{
-				Separator{},
-				Action{
-					Text: "Exit",
-					OnTriggered: func() {
-						pg.btnExit()
-					},
-				},
-			},
-		},
-		Menu{
-			Text: "&Help",
-			Items: []MenuItem{
-				Action{
-					Text: "About",
-					OnTriggered: func() {
-						aboutTitle := "About"
-						aboutMsg := fmt.Sprintf("%s\r\n(%s)", szBanner, szVersion)
-						walk.MsgBox(pg.MainWindow, aboutTitle, aboutMsg, walk.MsgBoxIconInformation)
-					},
-				},
-			},
-		},
-	}
-}
-
-func (pg *portGroup) showBanner() Composite {
-	return Composite{
-		Layout: Grid{Columns: 4, Spacing: 5},
-		Children: []Widget{
-			Label{
-				Text: "Module: ",
-				//Background: SolidColorBrush{255,0,0},
-			},
-			RadioButtonGroup{
-				Buttons: []RadioButton{
-					RadioButton{
-						AssignTo: &pg.modRadiuo[SIM800C],
-						Name:     "SIM800C",
-						Text:     "SIM800C",
-						Value:    "0",
-						OnClicked: func() {
-							pg.setModule(SIM800C)
-						},
-					},
-
-					RadioButton{
-						AssignTo: &pg.modRadiuo[EC20],
-						Name:     "EC20",
-						Text:     "EC20",
-						Value:    "1",
-						OnClicked: func() {
-							pg.setModule(EC20)
-						},
-					},
-					RadioButton{
-						AssignTo: &pg.modRadiuo[EC20_AUTO],
-						Name:     "EC20_AUTO",
-						Text:     "EC20_AUTO",
-						Value:    "2",
-						OnClicked: func() {
-							pg.setModule(EC20_AUTO)
-						},
-					},
-				},
-			},
-		},
-	}
-}
-
-func (pg *portGroup) showPortG(portid int) Composite {
-	var checkCKB *walk.CheckBox
-	var statusTE *walk.LineEdit
-	var cmdLE *walk.LineEdit
-
-	return Composite{
-		Layout:  HBox{},
-		MaxSize: Size{0, 30},
-		Children: []Widget{
-			CheckBox{
-				AssignTo: &checkCKB,
-				MaxSize:  Size{60, 0},
-				Text:     fmt.Sprintf("Port[%d]", portid),
-				OnClicked: func() {
-					if checkCKB.CheckState() == 0 {
-						pg.Checkbox[portid] = false
-					} else {
-						pg.Checkbox[portid] = true
-					}
-				},
-			},
-			LineEdit{
-				AssignTo: &pg.portText[portid],
-				MaxSize:  Size{40, 0},
-				Text:     "*",
-				ReadOnly: true,
-			},
-			ComboBox{
-				AssignTo:     &pg.portCombo[portid],
-				Model:        pg.PortList,
-				CurrentIndex: 0,
-			},
-			PushButton{
-				Text: "Open",
-				OnClicked: func() {
-					comId := pg.portCombo[portid].CurrentIndex()
-					if comId < 0 {
-						comId = 0
-					}
-					strCom := COM_RNAME_PREFIX + pg.PortList[comId]
-					pg.btnOpen(portid, strCom)
-					statusTE.SetText(fmt.Sprintf("Open port %s", strCom))
-
-					pg.portText[portid].SetTextColor(okColor)
-					pg.portText[portid].SetText(fmt.Sprintf("%s", serial_port[portid].strInfo))
-				},
-			},
-			PushButton{
-				Text: "Produce",
-				OnClicked: func() {
-					comId := pg.portCombo[portid].CurrentIndex()
-					if comId < 0 {
-						comId = 0
-					}
-					strCom := COM_RNAME_PREFIX + pg.PortList[comId]
-					pg.btnProduce(portid, strCom)
-					statusTE.SetText(fmt.Sprintf("Produce port %s", strCom))
-				},
-			},
-			PushButton{
-				Text: "Close",
-				OnClicked: func() {
-					comId := pg.portCombo[portid].CurrentIndex()
-					if comId < 0 {
-						comId = 0
-					}
-					strCom := COM_RNAME_PREFIX + pg.PortList[comId]
-					pg.btnClose(portid, strCom)
-					statusTE.SetText(fmt.Sprintf("Close port %s", strCom))
-
-					pg.portText[portid].SetTextColor(okColor)
-					pg.portText[portid].SetText(fmt.Sprintf("%s", serial_port[portid].strInfo))
-				},
-			},
-			PushButton{
-				Text: "ATsend",
-				OnClicked: func() {
-					comId := pg.portCombo[portid].CurrentIndex()
-					if comId < 0 {
-						comId = 0
-					}
-					strCom := COM_RNAME_PREFIX + pg.PortList[comId]
-					resp := pg.btnATSend(portid, strCom, cmdLE.Text())
-					statusTE.SetText(fmt.Sprintf("%s", resp))
-				},
-			},
-			LineEdit{
-				AssignTo: &cmdLE,
-				Text:     "AT",
-			},
-			LineEdit{
-				AssignTo: &statusTE,
-				ReadOnly: true,
-			},
-		},
-	}
-}
-
-func (pg *portGroup) showBtnG() Composite {
-	return Composite{
-		Layout: Grid{Columns: 3, Spacing: 10},
-		Children: []Widget{
-			PushButton{
-				Text: "ProduceAll",
-				OnClicked: func() {
-					fmt.Printf("ProduceAll: %v\n", pg.Checkbox)
-					pg.btnHandleAll(Btn_CMD_Produce, true)
-				},
-			},
-			PushButton{
-				Text: "CheckDoAll",
-				OnClicked: func() {
-					fmt.Printf("CheckDoAll: %v\n", pg.Checkbox)
-					pg.btnHandleAll(Btn_CMD_CheckDo, true)
-				},
-			},
-			PushButton{
-				Text: "CloseAll",
-				OnClicked: func() {
-					fmt.Printf("CloseAll: %v\n", pg.Checkbox)
-					pg.btnHandleAll(Btn_CMD_Close, false)
-				},
-			},
-			PushButton{
-				Text: "RefreshPort",
-				OnClicked: func() {
-					fmt.Printf("RefreshPort: %v\n", pg.Checkbox)
-					pg.btnRefreshPort()
-				},
-			},
-			PushButton{
-				Text: "LoadToken",
-				OnClicked: func() {
-					fmt.Printf("LoadToken: %v\n", pg.Checkbox)
-					pg.btnLoadToken()
-				},
-			},
-			PushButton{
-				Text: "Quit",
-				OnClicked: func() {
-					fmt.Printf("Quit: %v\n", pg.Checkbox)
-					pg.btnExit()
-				},
-			},
-		},
-	}
+	return newbi
 }
 
 //////////////////////////////////////////////////////////////////////////////////
-
-func (pg *portGroup) openMessage(message string) {
-	walk.MsgBox(pg.MainWindow, "Message", message, walk.MsgBoxIconInformation)
+// btn handle
+func (tbi *TBaseInfo) btnOpen(portid int, strCom string) {
+	if serialOpen(portid, strCom) != 0 {
+		msg := fmt.Sprintf("Filed to open the %s!", strCom)
+		tbi.openMessage(msg)
+	}
 }
 
-func (pg *portGroup) doResult(resp PortResult) {
-	if (resp.Oper == Btn_CMD_Produce) || (resp.Oper == Btn_CMD_CheckDo) {
-		if resp.Result == 0 {
-			serial_port[resp.Portid].strInfo = "OK"
-			pg.portText[resp.Portid].SetTextColor(okColor)
-			pg.portText[resp.Portid].SetText(fmt.Sprintf("%s", serial_port[resp.Portid].strInfo))
-		} else {
-			serial_port[resp.Portid].strInfo = "XXX"
-			pg.portText[resp.Portid].SetTextColor(errColor)
-			pg.portText[resp.Portid].SetText(fmt.Sprintf("%s", serial_port[resp.Portid].strInfo))
+func (tbi *TBaseInfo) btnClose(portid int, strCom string) {
+	serialClose(portid)
+}
+
+func (tbi *TBaseInfo) btnATSend(portid int, strCom string, strCmd string) string {
+	if portIsOK(portid) == 0 {
+		msg := fmt.Sprintf("Please open the port[%d]!", portid)
+		tbi.openMessage(msg)
+	} else {
+		return serialATsendCmd(portid, strCom, strCmd)
+	}
+
+	return ""
+}
+
+func (tbi *TBaseInfo) btnProduce(portid int, strCom string) {
+	if portIsOK(portid) == 0 {
+		msg := fmt.Sprintf("Please open the port[%d]!", portid)
+		tbi.openMessage(msg)
+	} else {
+		vlog.Info("Port[%d] => start produce %s", portid, strCom)
+
+		if serial_port[portid].port_status != PORT_STATUS_PRODUCE {
+			serial_port[portid].port_status = PORT_STATUS_PRODUCE
+			taskChan := make(chan PortResult)
+			go tbi.setTaskBtn(Btn_CMD_Produce, portid, taskChan)
+			tbi.getTaskBtn(1, taskChan)
 		}
-	} else if resp.Oper == Btn_CMD_Close {
-		serial_port[resp.Portid].strInfo = "*"
-		pg.portText[resp.Portid].SetTextColor(defColor)
-		pg.portText[resp.Portid].SetText(fmt.Sprintf("%s", serial_port[resp.Portid].strInfo))
+		serial_port[portid].port_status = PORT_STATUS_OPEN
+	}
+}
+
+func (tbi *TBaseInfo) btnHandleAll(oper int, check bool) {
+	if check && (tbi.checkBoxAll() == false) {
+		return
+	}
+
+	vlog.Info("start %s all", myBtnTab[oper].BtnStr)
+	taskChan := make(chan PortResult)
+	taskCnt := 0
+	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
+		if (tbi.Checkbox[port_id] || !check) && (portIsOK(port_id) != 0) {
+			taskCnt++
+			go tbi.setTaskBtn(oper, port_id, taskChan)
+		}
+	}
+	tbi.getTaskBtn(taskCnt, taskChan)
+}
+
+func (tbi *TBaseInfo) btnExit() {
+	os.Exit(1)
+}
+
+func (tbi *TBaseInfo) btnLoadToken() {
+	loadTokenCfg(gConfig.Token.Cmcc_file, OPER_CN_MOBILE)
+	loadTokenCfg(gConfig.Token.Uni_file, OPER_CN_UNICOM)
+	loadTokenCfg(gConfig.Token.Tel_file, OPER_CN_TELECOM)
+}
+
+func (tbi *TBaseInfo) btnRefreshPort() {
+	tbi.btnHandleAll(Btn_CMD_Close, false)
+
+	tbi.PortList = serialList()
+
+	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
+		//TODO reset combo
+		//pg.portCombo[port_id].resetItems()
+	}
+
+	vlog.Info("Portlists: %v", tbi.PortList)
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+// other handle
+
+func (tbi *TBaseInfo) setTaskBtn(oper int, portid int, taskCH chan PortResult) {
+	ret := myBtnTab[oper].BtnFunc(portid)
+	resp := PortResult{
+		Portid: portid,
+		Oper:   oper,
+		Result: ret,
+	}
+	vlog.Info("Handle-Put result of %s port[%d]: %d", myBtnTab[resp.Oper].BtnStr, resp.Portid, resp.Result)
+
+	tbi.doResult(resp)
+
+	if sysNeedSync {
+		taskCH <- resp
+	}
+}
+
+func (tbi *TBaseInfo) getTaskBtn(count int, taskCH chan PortResult) {
+	if sysNeedSync {
+		for i := 0; i < count; i++ {
+			resp := <-taskCH
+			vlog.Info("Handle-Get result of %s port[%d]: %d", myBtnTab[resp.Oper].BtnStr, resp.Portid, resp.Result)
+			tbi.doResult(resp)
+		}
+		close(taskCH)
+	}
+
+	return
+}
+
+func (tbi *TBaseInfo) checkBoxAll() bool {
+	cntCheck := 0
+	portlist := ""
+
+	for port_id := 0; port_id < gConfig.Serial.Serial_max; port_id++ {
+		if tbi.Checkbox[port_id] {
+			cntCheck++
+			if portIsOK(port_id) == 0 {
+				portlist += fmt.Sprintf("%d,", port_id)
+			}
+		}
+	}
+
+	vlog.Info("Check port(%d): %s", cntCheck, portlist)
+
+	if cntCheck == 0 {
+		tbi.openMessage("Please select(open) the ports!")
+		return false
+	} else if portlist != "" {
+		msg := fmt.Sprintf("Please select(open) the ports: [%s]!", portlist)
+		tbi.openMessage(msg)
+		return false
+	}
+
+	return true
+}
+
+func (tbi *TBaseInfo) setModule(module Module_cfg) {
+	if tbi.Module != module {
+		vlog.Info("module from %d to %d", tbi.Module, module)
+		tbi.btnHandleAll(Btn_CMD_Close, false)
+		tbi.Module = module
+		module_reinit(tbi.Module)
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////
+
+func (tbi *TBaseInfo) openMessage(message string) {
+	if tbi.nui != nil {
+		tbi.nui.openMessage(message)
+	}
+	if tbi.wui != nil {
+		tbi.wui.openMessage(message)
+	}
+}
+
+func (tbi *TBaseInfo) doResult(resp PortResult) {
+	if tbi.nui != nil {
+		tbi.nui.doResult(resp)
+	}
+	if tbi.wui != nil {
+		tbi.wui.doResult(resp)
 	}
 }

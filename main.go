@@ -23,6 +23,14 @@ func main() {
 	server_init()
 	serial_util_init()
 
-	pg := newportGroup()
-	pg.showUI()
+	if gConfig.UIstyle == "walk" {
+		newui := newWalkUI()
+		newui.RunUI()
+	} else if gConfig.UIstyle == "nucular" {
+		newui := newNucularUI()
+		newui.RunUI()
+	} else {
+		newui := newNucularUI()
+		newui.RunUI()
+	}
 }
