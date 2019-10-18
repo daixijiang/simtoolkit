@@ -17,7 +17,7 @@ import (
   "verbose": 0,
   "module": "sim800c",
   "simfake": 0,
-  "uistyle": "walk",
+  "uistyle": "nucular",
   "log": {
     "level": "info",
     "file": "vsimkit.log",
@@ -56,7 +56,7 @@ scaling = 1.5
 verbose = 1
 #module = sim800c
 #simfake = 1
-uistyle = walk
+uistyle = nucular
 
 [log]
 level = info
@@ -132,7 +132,7 @@ type SysConfig struct {
 	Verbose int     `default:"0"`
 	Simfake int     `default:"0"`
 	Module  string  `default:"sim800c"`
-	UIstyle string  `default:"walk"`
+	UIstyle string  `default:"nucular"`
 	Log     config_log
 	Token   config_token
 	Server  config_server

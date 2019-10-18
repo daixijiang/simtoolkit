@@ -1,7 +1,7 @@
 verbose            = 1
 #simfake           = 1
-module             = "ec20"
-uistyle            = "nucular"
+#module             = "ec20"
+#uistyle            = "walk"
 
 [serial]
 serial_max         = 8
