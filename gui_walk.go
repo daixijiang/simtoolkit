@@ -23,7 +23,7 @@ type walkUI struct {
 
 var defColor = walk.RGB(255, 255, 0)
 var errColor = walk.RGB(255, 0, 0)
-var okColor = walk.RGB(255, 255, 0)
+var okColor = walk.RGB(0, 0, 255)
 
 func newWalkUI() (wui *walkUI) {
 	newui := &walkUI{}
